@@ -3,204 +3,285 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Underline Caret Lab</title>
+<title>Highlight Effects Lab</title>
 <style>
-  :root{ --bg:#000; --fg:#fff; --accent:#9900FF; --border:rgba(255,255,255,.14); }
-  html,body{ height:100%; margin:0; background:var(--bg); color:var(--fg);
+  :root{
+    --bg:#000; --fg:#fff; --accent:#9900FF; --border:rgba(255,255,255,.14);
+    --note:#8a8a8a;
+  }
+  html,body{
+    height:100%; margin:0; background:var(--bg); color:var(--fg);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
-    font-weight:700; -webkit-font-smoothing:antialiased; overflow:hidden; }
+    font-weight:700; -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
   .wrap{ min-height:100%; display:grid; place-items:center; padding:2rem; text-align:center; }
   .hero{ display:inline-block; border:1px solid var(--border); border-radius:24px;
-    padding:clamp(16px,3vw,32px) clamp(18px,4vw,52px); box-shadow:0 10px 30px rgba(0,0,0,.45); }
-  .line{ margin:0; letter-spacing:.2px; line-height:1.05; font-size:clamp(28px,6vw,72px); white-space:pre-wrap; }
+         padding:clamp(16px,3vw,32px) clamp(18px,4vw,52px);
+         box-shadow:0 10px 30px rgba(0,0,0,.45); max-width:min(1200px,92vw); }
+  h1{ margin:0 0 18px 0; font-size:clamp(22px,2.4vw,28px); color:#bdbdbd; font-weight:800; letter-spacing:.4px; }
+  .line{ margin:0; letter-spacing:.2px; line-height:1.15; font-size:clamp(28px,6vw,64px); white-space:pre-wrap; }
   .accent{ color:var(--accent); }
+  .muted{ color:var(--note); font-weight:600; letter-spacing:.3px; }
 
-  /* Tray */
-  .tray{ position:fixed; right:16px; top:16px; display:flex; gap:8px; align-items:center;
-    background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:8px 10px; backdrop-filter:blur(6px); }
-  .tray label{ font-size:.8rem; color:#aaa; font-weight:600; }
-  .tray select,.tray button{ background:#111; color:#ddd; border:1px solid #2a2a2a; border-radius:8px; padding:6px 8px; font-weight:600; }
+  /* Control tray */
+  .tray{
+    position:fixed; right:16px; top:16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:8px 10px;
+    backdrop-filter: blur(6px);
+  }
+  .tray label{ font-size:.8rem; color:#aaa; font-weight:700; margin-right:4px; }
+  .tray select,.tray button,.tray input[type="checkbox"]{
+    background:#111; color:#ddd; border:1px solid #2a2a2a; border-radius:8px; padding:6px 8px; font-weight:700;
+  }
   .tray button{ cursor:pointer }
   .hint{ position:fixed; left:16px; bottom:16px; color:#888; font-size:.8rem; letter-spacing:.3px; }
 
-  /* Base underline caret */
-  .caret{ display:inline-block; background:currentColor; vertical-align:baseline; margin-left:.05em; }
-  .underscore{ height:2px; width:.7em; transform:translateY(.45em); border-radius:2px; }
-  .blink{ animation: blink 1s steps(1) infinite; }
-  @keyframes blink{ 50%{opacity:0} }
+  /* ---------- 1) Native ::selection themes ---------- */
+  /* Base (overridable) */
+  ::selection{ background:rgba(153,0,255,.45); color:#fff; text-shadow:0 0 6px rgba(153,0,255,.35); }
+  ::-moz-selection{ background:rgba(153,0,255,.45); color:#fff; }
+  /* Blue Ice */
+  .sel-ice ::selection{ background:rgba(0,153,255,.45); color:#fff; text-shadow:0 0 6px rgba(0,153,255,.35); }
+  .sel-ice ::-moz-selection{ background:rgba(0,153,255,.45); color:#fff; }
+  /* Fire Orange */
+  .sel-fire ::selection{ background:rgba(255,140,0,.42); color:#111; text-shadow:none; }
+  .sel-fire ::-moz-selection{ background:rgba(255,140,0,.42); color:#111; }
+  /* High Contrast */
+  .sel-hi ::selection{ background:#fff; color:#000; text-shadow:none; }
+  .sel-hi ::-moz-selection{ background:#fff; color:#000; }
+  /* Monochrome Mist */
+  .sel-mono ::selection{ background:rgba(255,255,255,.18); color:#fff; text-shadow:0 0 10px rgba(255,255,255,.35); }
+  .sel-mono ::-moz-selection{ background:rgba(255,255,255,.18); color:#fff; }
 
-  /* VARIANTS */
-  /* 1) Hairline (ultra-thin) */
-  .v-hair{ height:1px; opacity:.9; }
+  /* ---------- 2) Committed highlight effects (after selection) ---------- */
+  /* Common mark styling */
+  mark.hl{
+    color:inherit;
+    -webkit-box-decoration-break:clone; box-decoration-break:clone;
+    padding:0 .05em .02em .05em; border-radius:.18em; position:relative; z-index:0;
+    transition:filter .2s ease, transform .2s ease;
+  }
+  /* Ink swipe (animated clip) */
+  mark.fx-ink{ background:#fff; color:#000; overflow:hidden; }
+  mark.fx-ink::before{
+    content:""; position:absolute; inset:0; background:linear-gradient(90deg,#fff, #ddd);
+    transform:scaleX(0); transform-origin:left; z-index:-1; animation:ink 450ms cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes ink{ to{ transform:scaleX(1) } }
 
-  /* 2) Thin (default size tweak) */
-  .v-thin{ height:2px; }
+  /* Neon glow (solid with aura) */
+  mark.fx-neon{ background:#2b1440; box-shadow:0 0 0 0 rgba(153,0,255,.0); color:#fff; }
+  mark.fx-neon.anim{ box-shadow:0 0 8px rgba(153,0,255,.55), 0 0 22px rgba(153,0,255,.35); }
 
-  /* 3) Thick slab */
-  .v-thick{ height:5px; border-radius:3px; }
+  /* Marker texture (hand-drawn strokes) */
+  mark.fx-marker{
+    background:
+      linear-gradient(transparent 60%, rgba(255,255,0,.85) 60% 100%),
+      repeating-linear-gradient(0deg, rgba(255,255,0,.15) 0 3px, rgba(255,255,0,.0) 3px 6px);
+    color:#000; text-shadow:none;
+    box-shadow:inset 0 -1px 0 rgba(0,0,0,.25);
+    animation:markerIn 380ms ease-out both;
+  }
+  @keyframes markerIn{ from{ background-position:-100% 0, 0 0 } to{ background-position:0 0, 0 0 } }
 
-  /* 4) Wide bar */
-  .v-wide{ width:1.2em; }
+  /* Hatch stripes */
+  mark.fx-hatch{
+    background:
+      linear-gradient(transparent 62%, rgba(255,255,255,.22) 62% 100%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,.25) 0 6px, rgba(255,255,255,0) 6px 12px);
+    color:#fff; text-shadow:0 1px 0 #000;
+    animation:hatchIn 420ms ease-out both;
+  }
+  @keyframes hatchIn{ from{ background-size:200% 100%, 20px 20px } to{ background-size:100% 100%, 12px 12px } }
 
-  /* 5) Gradient bar */
-  .v-gradient{ background:linear-gradient(90deg, var(--accent), #ffffff); }
+  /* Invert (film negative) */
+  mark.fx-invert{ filter:invert(1) hue-rotate(180deg) saturate(1.2); background:transparent; border-radius:.06em; }
 
-  /* 6) Neon glow */
-  .v-neon{ background:var(--accent); box-shadow:0 0 6px var(--accent), 0 0 18px var(--accent); }
+  /* Underline sweep (keeps text unfilled; animated underline grows) */
+  mark.fx-underline{
+    background:linear-gradient(transparent 70%, var(--accent) 70% 100%);
+    color:inherit;
+    background-size:0% 100%; background-repeat:no-repeat;
+    animation:underlineIn 420ms ease forwards;
+  }
+  @keyframes underlineIn{ to{ background-size:100% 100% } }
 
-  /* 7) Dashed underline */
-  .v-dashed{ height:3px;
-    background:repeating-linear-gradient(90deg, currentColor 0 6px, transparent 6px 11px); }
+  /* Shadow glow (soft outer glow) */
+  mark.fx-glow{ background:transparent; text-shadow:0 0 0 rgba(153,0,255,0); }
+  mark.fx-glow.anim{ text-shadow:0 0 10px rgba(153,0,255,.6), 0 0 24px rgba(153,0,255,.35); }
 
-  /* 8) Dotted underline */
-  .v-dotted{ height:3px;
-    background:radial-gradient(currentColor 50%, transparent 52%); background-size:8px 3px; background-repeat:repeat-x; }
+  /* Ripple (subtle echo outward) */
+  mark.fx-ripple{ background:rgba(255,255,255,.12); }
+  mark.fx-ripple::after{
+    content:""; position:absolute; inset:-2px; border-radius:.2em;
+    box-shadow:0 0 0 0 rgba(255,255,255,.35); animation:rip 900ms ease-out forwards;
+  }
+  @keyframes rip{ to{ box-shadow:0 0 0 12px rgba(255,255,255,0) } }
 
-  /* 9) Double underline */
-  .v-double{ position:relative; background:none; height:6px; width:.9em; }
-  .v-double::before,.v-double::after{ content:""; position:absolute; left:0; right:0; height:2px; background:currentColor; border-radius:2px; }
-  .v-double::before{ top:0; } .v-double::after{ bottom:0; }
+  /* Copperplate (metallic band) */
+  mark.fx-copper{
+    background:linear-gradient(180deg,#f8e7d0 0%,#d1a676 40%,#a06f3c 50%,#d1a676 60%,#f3dfc5 100%);
+    color:#1a0e05; text-shadow:0 1px 0 rgba(255,255,255,.3);
+    box-shadow:inset 0 -1px 0 rgba(0,0,0,.25);
+    animation:ink 480ms cubic-bezier(.2,.7,.2,1) forwards;
+  }
 
-  /* 10) Pulse width (breathing) */
-  .v-pulse{ animation:widthPulse 1.4s ease-in-out infinite; }
-  @keyframes widthPulse{ 0%,100%{ width:.6em } 50%{ width:1.15em } }
+  /* Carbon (dark brushed overlay) */
+  mark.fx-carbon{
+    background:
+      linear-gradient(transparent 62%, rgba(255,255,255,.10) 62% 100%),
+      repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 2px, rgba(255,255,255,0) 2px 4px);
+    color:#fff; text-shadow:0 1px 0 #000;
+    animation:hatchIn 360ms ease-out both;
+  }
 
-  /* 11) Color cycle (hue rotate) */
-  .v-colorcycle{ background:var(--accent); filter:hue-rotate(0deg); animation:hue 3s linear infinite; }
-  @keyframes hue{ to{ filter:hue-rotate(360deg) } }
+  /* Outline-only (no fill, bright rim) */
+  mark.fx-outline{
+    background:transparent; color:inherit;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.85), 0 0 12px rgba(255,255,255,.2);
+    border-radius:.2em; padding:0 .15em; text-shadow:none;
+  }
 
-  /* 12) Ripple (soft echo) */
-  .v-ripple{ position:relative; }
-  .v-ripple::after{ content:""; position:absolute; inset:0; border-radius:3px;
-    box-shadow:0 0 0 0 rgba(153,0,255,.5); animation:ripple 1.2s ease-out infinite; }
-  @keyframes ripple{ to{ box-shadow:0 0 0 8px rgba(153,0,255,0) } }
+  /* Toolbar style */
+  .toolbar{
+    margin-top:12px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+  }
+  .toolbar select, .toolbar button, .toolbar label{
+    background:#111; color:#ddd; border:1px solid #2a2a2a; border-radius:8px; padding:6px 10px; font-weight:700;
+  }
+  .toolbar button{ cursor:pointer }
 
-  /* 13) Elastic (overshoot stretch) */
-  .v-elastic{ transform-origin:left bottom; animation:elastic 0.7s ease-out infinite alternate; }
-  @keyframes elastic{ from{ transform:translateY(.45em) scaleX(.7) } to{ transform:translateY(.45em) scaleX(1.15) } }
-
-  /* 14) Slideplate (subtle glide) */
-  .v-slideplate{ width:1.1em; transition:width .2s ease; }
+  /* subtle instructions */
+  .note{ margin-top:10px; font-size:.85rem; }
 </style>
 </head>
-<body>
+<body class="sel-default">
+  <!-- Native selection theme switcher -->
   <div class="tray">
-    <label for="fx">Underline Caret</label>
-    <select id="fx">
-      <option value="v-thin">Thin (classic)</option>
-      <option value="v-hair">Hairline</option>
-      <option value="v-thick">Thick Slab</option>
-      <option value="v-wide">Wide Bar</option>
-      <option value="v-gradient">Gradient</option>
-      <option value="v-neon">Neon Glow</option>
-      <option value="v-dashed">Dashed</option>
-      <option value="v-dotted">Dotted</option>
-      <option value="v-double">Double</option>
-      <option value="v-pulse">Pulse Width</option>
-      <option value="v-colorcycle">Color Cycle</option>
-      <option value="v-ripple">Ripple Echo</option>
-      <option value="v-elastic">Elastic</option>
-      <option value="v-slideplate">Slideplate</option>
+    <label for="selTheme">Native selection</label>
+    <select id="selTheme">
+      <option value="sel-default">Violet (default)</option>
+      <option value="sel-ice">Blue Ice</option>
+      <option value="sel-fire">Fire Orange</option>
+      <option value="sel-hi">High Contrast</option>
+      <option value="sel-mono">Monochrome Mist</option>
     </select>
-    <button id="prev">◀</button>
-    <button id="next">▶</button>
-    <button id="pause">⏸</button>
   </div>
 
   <div class="wrap">
     <div class="hero">
-      <h1 class="line" id="line"></h1>
+      <h1>Highlight anything in the line below. On mouse-up, I’ll turn it into an <span class="accent">animated highlight</span>.</h1>
+      <p class="line" id="text">
+        The world is <span class="accent">yours</span>. What are you so <span class="accent">afraid</span> of?
+        Volume Negates <span class="accent">Luck</span>. Obedience <span class="accent">begets</span> mediocrity.
+        You don't win silver, you <span class="accent">lose</span> gold. This isn't real, you're <span class="accent">dreaming</span>.
+        I am <span class="accent">invincible</span>.
+      </p>
+
+      <div class="toolbar">
+        <label>
+          Effect
+          <select id="fx">
+            <option value="fx-ink">Ink Swipe</option>
+            <option value="fx-marker">Marker Texture</option>
+            <option value="fx-hatch">Hatch Stripes</option>
+            <option value="fx-underline">Underline Sweep</option>
+            <option value="fx-neon">Neon Glow</option>
+            <option value="fx-glow">Shadow Glow</option>
+            <option value="fx-ripple">Ripple Echo</option>
+            <option value="fx-invert">Invert Film</option>
+            <option value="fx-copper">Copperplate</option>
+            <option value="fx-carbon">Carbon Weave</option>
+            <option value="fx-outline">Outline Only</option>
+          </select>
+        </label>
+
+        <label>
+          <input type="checkbox" id="auto" checked />
+          Auto-commit on select
+        </label>
+
+        <button id="commit">Commit current selection</button>
+        <button id="clear">Clear highlights</button>
+      </div>
+
+      <div class="note muted">Tip: for reliable wrapping, select within this single paragraph. Selecting across separate elements can fail (that’s a browser constraint, not weakness).</div>
     </div>
   </div>
 
-  <div class="hint">Space = pause/resume · Arrows = prev/next message</div>
+  <div class="hint">Try different “Native selection” themes (top-right). Then release the mouse to convert selection into an animated <mark> highlight.</div>
 
 <script>
 (function(){
-  const line = document.getElementById('line');
+  const text = document.getElementById('text');
   const fxSel = document.getElementById('fx');
-  const btnPrev = document.getElementById('prev');
-  const btnNext = document.getElementById('next');
-  const btnPause= document.getElementById('pause');
+  const auto = document.getElementById('auto');
+  const btnCommit = document.getElementById('commit');
+  const btnClear = document.getElementById('clear');
+  const selTheme = document.getElementById('selTheme');
 
-  // Messages to cycle
-  const msgs = [
-    {text:`The world is `, accent:`yours`, end:`.`},
-    {text:`What are you so `, accent:`afraid`, end:` of?`},
-    {text:`Volume Negates `, accent:`Luck`, end:`.`},
-    {text:`No hard feelings `, accent:`brother`, end:`.`},
-    {text:`Obedience `, accent:`begets`, end:` mediocrity.`},
-    {text:`You don't win silver, you `, accent:`lose`, end:` gold.`},
-    {text:`This isn't real, you're `, accent:`dreaming`, end:`.`},
-    {text:`I am `, accent:`invincible`, end:`.`}
-  ];
-
-  // Timings
-  const HOLD = 1100, TYPE = 55, ERASE = 36;
-  const wait = ms => new Promise(r=>setTimeout(r,ms));
-
-  const plain  = m => (m.text||"") + (m.accent||"") + (m.end||"");
-  const finalHTML = m => `${m.text}<span class="accent">${m.accent||""}</span>${m.end||""}`;
-
-  // Build caret HTML based on selected variant
-  function caretHTML(){
-    const v = fxSel.value || 'v-thin';
-    return `<span class="caret underscore ${v} blink"></span>`;
-  }
-
-  // Type + erase with underline caret
-  async function typeOne(m){
-    const t = plain(m);
-    line.innerHTML = '';
-    // type
-    for(let i=0;i<t.length;i++){
-      line.textContent = t.slice(0,i+1);
-      line.insertAdjacentHTML('beforeend', caretHTML());
-      await wait(TYPE);
-    }
-    // swap in accent markup and caret
-    line.innerHTML = finalHTML(m) + caretHTML();
-    await wait(HOLD);
-    // erase
-    let s = line.innerText; // strip caret/markup
-    while(s.length){
-      s = s.slice(0,-1);
-      line.textContent = s;
-      line.insertAdjacentHTML('beforeend', caretHTML());
-      await wait(ERASE);
-    }
-    line.innerHTML = '';
-  }
-
-  // Runner
-  let idx=0, paused=false, loop=true;
-  async function cycle(){
-    while(loop){
-      if(paused){ await wait(80); continue; }
-      await typeOne(msgs[idx % msgs.length]);
-      idx = (idx+1) % msgs.length;
-    }
-  }
-
-  // Controls
-  btnPrev.addEventListener('click', async ()=>{
-    if(paused) return; paused=true; btnPause.textContent='▶';
-    idx = (idx-1+msgs.length)%msgs.length;
-    paused=false; btnPause.textContent='⏸';
-  });
-  btnNext.addEventListener('click', async ()=>{
-    if(paused) return; paused=true; btnPause.textContent='▶';
-    idx = (idx+1)%msgs.length;
-    paused=false; btnPause.textContent='⏸';
-  });
-  btnPause.addEventListener('click', ()=>{ paused=!paused; btnPause.textContent = paused?'▶':'⏸'; });
-  window.addEventListener('keydown',(e)=>{
-    if(e.code==='Space'){ e.preventDefault(); btnPause.click(); }
-    if(e.code==='ArrowRight') btnNext.click();
-    if(e.code==='ArrowLeft') btnPrev.click();
+  // Switch native ::selection theme by toggling a class on <body>
+  selTheme.addEventListener('change', ()=>{
+    document.body.className = selTheme.value;
   });
 
-  (async()=>{ await wait(200); cycle(); })();
+  // Wrap current selection in <mark class="hl fx-...">
+  function commitSelection(){
+    const s = window.getSelection();
+    if(!s || s.isCollapsed) return;
+    const r = s.getRangeAt(0);
+
+    // Ensure selection is inside our paragraph for clean surroundContents
+    if(!text.contains(r.commonAncestorContainer)){
+      console.warn('Select inside the demo paragraph for best results.');
+      return;
+    }
+
+    const mark = document.createElement('mark');
+    mark.className = `hl ${fxSel.value}`;
+    mark.classList.add('anim'); // some effects key off this
+    mark.style.setProperty('-webkit-box-decoration-break','clone');
+    mark.style.setProperty('box-decoration-break','clone');
+
+    try{
+      r.surroundContents(mark);
+    }catch(e){
+      // Fallback: only wrap if the selection is within a single text node
+      const contents = r.cloneContents();
+      // Abort if contains element nodes (complex selection)
+      if([...contents.childNodes].some(n=>n.nodeType!==Node.TEXT_NODE)){
+        console.warn('Please select within one contiguous run of text.');
+        return;
+      }
+      const span = document.createElement('mark');
+      span.className = mark.className;
+      span.classList.add('anim');
+      span.appendChild(contents);
+      r.deleteContents();
+      r.insertNode(span);
+    }
+    // Clear native selection highlight
+    s.removeAllRanges();
+  }
+
+  // Auto-commit on mouseup inside the paragraph
+  text.addEventListener('mouseup', ()=>{
+    if(auto.checked) commitSelection();
+  });
+
+  btnCommit.addEventListener('click', commitSelection);
+
+  // Clear all custom marks (unwrap)
+  btnClear.addEventListener('click', ()=>{
+    const marks = text.querySelectorAll('mark.hl');
+    marks.forEach(m=>{
+      const parent = m.parentNode;
+      while(m.firstChild) parent.insertBefore(m.firstChild, m);
+      parent.removeChild(m);
+      parent.normalize(); // merge adjacent text nodes
+    });
+  });
+
 })();
 </script>
 </body>
