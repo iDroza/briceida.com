@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Typing Effects Lab</title>
+<title>Underline Caret Lab</title>
 <style>
-  :root{ --bg:#000; --fg:#fff; --accent:#9900FF; --muted:#666; --border:rgba(255,255,255,.14); }
+  :root{ --bg:#000; --fg:#fff; --accent:#9900FF; --border:rgba(255,255,255,.14); }
   html,body{ height:100%; margin:0; background:var(--bg); color:var(--fg);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
     font-weight:700; -webkit-font-smoothing:antialiased; overflow:hidden; }
@@ -14,41 +14,93 @@
     padding:clamp(16px,3vw,32px) clamp(18px,4vw,52px); box-shadow:0 10px 30px rgba(0,0,0,.45); }
   .line{ margin:0; letter-spacing:.2px; line-height:1.05; font-size:clamp(28px,6vw,72px); white-space:pre-wrap; }
   .accent{ color:var(--accent); }
-  /* Carets */
-  .caret{ display:inline-block; width:.6ch; height:1em; background:currentColor; vertical-align:-.08em; }
-  .blink { animation: blink 1s steps(1) infinite; }
-  @keyframes blink{ 50%{ opacity:0 } }
-  .beam { width:2px; transform:translateY(.08em); }
-  .underscore { height:2px; width:0.7em; transform:translateY(.45em); }
-  /* Control tray */
+
+  /* Tray */
   .tray{ position:fixed; right:16px; top:16px; display:flex; gap:8px; align-items:center;
     background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:8px 10px; backdrop-filter:blur(6px); }
   .tray label{ font-size:.8rem; color:#aaa; font-weight:600; }
   .tray select,.tray button{ background:#111; color:#ddd; border:1px solid #2a2a2a; border-radius:8px; padding:6px 8px; font-weight:600; }
   .tray button{ cursor:pointer }
   .hint{ position:fixed; left:16px; bottom:16px; color:#888; font-size:.8rem; letter-spacing:.3px; }
-  /* Effects visuals */
-  .ghost{ color:var(--muted); opacity:.35; position:absolute; inset:0; pointer-events:none; }
-  .glow span.typed { text-shadow:0 0 8px rgba(153,0,255,.35), 0 0 20px rgba(153,0,255,.22); transition:text-shadow .2s ease; }
-  .trail span.fade { opacity:.35; }
+
+  /* Base underline caret */
+  .caret{ display:inline-block; background:currentColor; vertical-align:baseline; margin-left:.05em; }
+  .underscore{ height:2px; width:.7em; transform:translateY(.45em); border-radius:2px; }
+  .blink{ animation: blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{opacity:0} }
+
+  /* VARIANTS */
+  /* 1) Hairline (ultra-thin) */
+  .v-hair{ height:1px; opacity:.9; }
+
+  /* 2) Thin (default size tweak) */
+  .v-thin{ height:2px; }
+
+  /* 3) Thick slab */
+  .v-thick{ height:5px; border-radius:3px; }
+
+  /* 4) Wide bar */
+  .v-wide{ width:1.2em; }
+
+  /* 5) Gradient bar */
+  .v-gradient{ background:linear-gradient(90deg, var(--accent), #ffffff); }
+
+  /* 6) Neon glow */
+  .v-neon{ background:var(--accent); box-shadow:0 0 6px var(--accent), 0 0 18px var(--accent); }
+
+  /* 7) Dashed underline */
+  .v-dashed{ height:3px;
+    background:repeating-linear-gradient(90deg, currentColor 0 6px, transparent 6px 11px); }
+
+  /* 8) Dotted underline */
+  .v-dotted{ height:3px;
+    background:radial-gradient(currentColor 50%, transparent 52%); background-size:8px 3px; background-repeat:repeat-x; }
+
+  /* 9) Double underline */
+  .v-double{ position:relative; background:none; height:6px; width:.9em; }
+  .v-double::before,.v-double::after{ content:""; position:absolute; left:0; right:0; height:2px; background:currentColor; border-radius:2px; }
+  .v-double::before{ top:0; } .v-double::after{ bottom:0; }
+
+  /* 10) Pulse width (breathing) */
+  .v-pulse{ animation:widthPulse 1.4s ease-in-out infinite; }
+  @keyframes widthPulse{ 0%,100%{ width:.6em } 50%{ width:1.15em } }
+
+  /* 11) Color cycle (hue rotate) */
+  .v-colorcycle{ background:var(--accent); filter:hue-rotate(0deg); animation:hue 3s linear infinite; }
+  @keyframes hue{ to{ filter:hue-rotate(360deg) } }
+
+  /* 12) Ripple (soft echo) */
+  .v-ripple{ position:relative; }
+  .v-ripple::after{ content:""; position:absolute; inset:0; border-radius:3px;
+    box-shadow:0 0 0 0 rgba(153,0,255,.5); animation:ripple 1.2s ease-out infinite; }
+  @keyframes ripple{ to{ box-shadow:0 0 0 8px rgba(153,0,255,0) } }
+
+  /* 13) Elastic (overshoot stretch) */
+  .v-elastic{ transform-origin:left bottom; animation:elastic 0.7s ease-out infinite alternate; }
+  @keyframes elastic{ from{ transform:translateY(.45em) scaleX(.7) } to{ transform:translateY(.45em) scaleX(1.15) } }
+
+  /* 14) Slideplate (subtle glide) */
+  .v-slideplate{ width:1.1em; transition:width .2s ease; }
 </style>
 </head>
 <body>
   <div class="tray">
-    <label for="fx">Typing FX</label>
+    <label for="fx">Underline Caret</label>
     <select id="fx">
-      <option>Classic Typewriter</option>
-      <option>Human Jitter</option>
-      <option>Mistype & Correct</option>
-      <option>Word-by-Word</option>
-      <option>Reverse Type</option>
-      <option>Center-Out Type</option>
-      <option>Ghost Preview Overlay</option>
-      <option>Decoder / Scramble</option>
-      <option>Slide Caret (beam)</option>
-      <option>Underline Caret</option>
-      <option>Glow Trail</option>
-      <option>Fade Trail</option>
+      <option value="v-thin">Thin (classic)</option>
+      <option value="v-hair">Hairline</option>
+      <option value="v-thick">Thick Slab</option>
+      <option value="v-wide">Wide Bar</option>
+      <option value="v-gradient">Gradient</option>
+      <option value="v-neon">Neon Glow</option>
+      <option value="v-dashed">Dashed</option>
+      <option value="v-dotted">Dotted</option>
+      <option value="v-double">Double</option>
+      <option value="v-pulse">Pulse Width</option>
+      <option value="v-colorcycle">Color Cycle</option>
+      <option value="v-ripple">Ripple Echo</option>
+      <option value="v-elastic">Elastic</option>
+      <option value="v-slideplate">Slideplate</option>
     </select>
     <button id="prev">◀</button>
     <button id="next">▶</button>
@@ -58,7 +110,6 @@
   <div class="wrap">
     <div class="hero">
       <h1 class="line" id="line"></h1>
-      <!-- ghost layer is injected only for the Ghost effect -->
     </div>
   </div>
 
@@ -72,333 +123,74 @@
   const btnNext = document.getElementById('next');
   const btnPause= document.getElementById('pause');
 
-  // Your messages; accent is rendered purple within the sentence.
+  // Messages to cycle
   const msgs = [
     {text:`The world is `, accent:`yours`, end:`.`},
     {text:`What are you so `, accent:`afraid`, end:` of?`},
     {text:`Volume Negates `, accent:`Luck`, end:`.`},
     {text:`No hard feelings `, accent:`brother`, end:`.`},
-    {text:`Poverty loves `, accent:`balance`, end:`.`},
-    {text:`You don't win silver, you `, accent:`lose`, end:` gold.`},
     {text:`Obedience `, accent:`begets`, end:` mediocrity.`},
+    {text:`You don't win silver, you `, accent:`lose`, end:` gold.`},
     {text:`This isn't real, you're `, accent:`dreaming`, end:`.`},
     {text:`I am `, accent:`invincible`, end:`.`}
   ];
 
-  const HOLD = 1100;             // ms to hold before erase
-  const TYPE = 55;               // base per-char
-  const ERASE = 36;
+  // Timings
+  const HOLD = 1100, TYPE = 55, ERASE = 36;
   const wait = ms => new Promise(r=>setTimeout(r,ms));
 
-  // Build final HTML string with accent span
-  function finalHTML(m){ return `${m.text}<span class="accent">${m.accent||""}</span>${m.end||""}`; }
-  function plain(m){ return (m.text||"") + (m.accent||"") + (m.end||""); }
-  function splitWords(s){ return s.match(/\S+\s*/g) || []; }
+  const plain  = m => (m.text||"") + (m.accent||"") + (m.end||"");
+  const finalHTML = m => `${m.text}<span class="accent">${m.accent||""}</span>${m.end||""}`;
 
-  // ---------- EFFECTS (each returns {in(m), out()}) ----------
-  const effects = {
-    "Classic Typewriter": ()=>{
-      return {
-        async in(m){
-          line.className='line';
-          const t = plain(m);
-          line.innerHTML = '';
-          for (let i=0;i<t.length;i++){
-            line.textContent = t.slice(0,i+1);
-            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
-            await wait(TYPE);
-          }
-          // swap in accent markup
-          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
-        },
-        async out(){
-          let s = line.innerText;
-          while(s.length){
-            s = s.slice(0,-1);
-            line.textContent = s;
-            await wait(ERASE);
-          }
-          line.innerHTML='';
-        }
-      };
-    },
+  // Build caret HTML based on selected variant
+  function caretHTML(){
+    const v = fxSel.value || 'v-thin';
+    return `<span class="caret underscore ${v} blink"></span>`;
+  }
 
-    "Human Jitter": ()=>{
-      const jitter = (b)=> b + Math.floor((Math.random()*40)-20);
-      return {
-        async in(m){
-          line.className='line';
-          const t = plain(m);
-          line.innerHTML='';
-          for (let i=0;i<t.length;i++){
-            line.textContent = t.slice(0,i+1);
-            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
-            await wait(Math.max(20, jitter(TYPE)));
-          }
-          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
+  // Type + erase with underline caret
+  async function typeOne(m){
+    const t = plain(m);
+    line.innerHTML = '';
+    // type
+    for(let i=0;i<t.length;i++){
+      line.textContent = t.slice(0,i+1);
+      line.insertAdjacentHTML('beforeend', caretHTML());
+      await wait(TYPE);
+    }
+    // swap in accent markup and caret
+    line.innerHTML = finalHTML(m) + caretHTML();
+    await wait(HOLD);
+    // erase
+    let s = line.innerText; // strip caret/markup
+    while(s.length){
+      s = s.slice(0,-1);
+      line.textContent = s;
+      line.insertAdjacentHTML('beforeend', caretHTML());
+      await wait(ERASE);
+    }
+    line.innerHTML = '';
+  }
 
-    "Mistype & Correct": ()=>{
-      return {
-        async in(m){
-          line.className='line';
-          const t = plain(m);
-          line.innerHTML='';
-          let s='';
-          for(let i=0;i<t.length;i++){
-            // occasional wrong char, then backspace
-            if(Math.random()<0.12){
-              const wrong = String.fromCharCode(33+Math.floor(Math.random()*60));
-              s += wrong; line.textContent = s;
-              line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
-              await wait(TYPE*0.9);
-              // backspace
-              s = s.slice(0,-1); line.textContent = s;
-              line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
-              await wait(TYPE*0.7);
-            }
-            s += t[i]; line.textContent = s;
-            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
-            await wait(TYPE);
-          }
-          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
-
-    "Word-by-Word": ()=>{
-      return {
-        async in(m){
-          line.className='line';
-          const words = splitWords(plain(m));
-          line.innerHTML='';
-          let s='';
-          for(const w of words){
-            s += w; line.textContent = s;
-            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
-            await wait(TYPE*2);
-          }
-          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
-
-    "Reverse Type": ()=>{
-      return {
-        async in(m){
-          line.className='line';
-          const t = plain(m);
-          for(let i=t.length;i>=0;i--){
-            line.textContent = t.slice(i);
-            line.insertAdjacentHTML('afterbegin', `<span class="caret blink"></span>`);
-            await wait(TYPE*0.8);
-          }
-          line.innerHTML = finalHTML(m);
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
-
-    "Center-Out Type": ()=>{
-      return {
-        async in(m){
-          line.className='line';
-          const t = plain(m);
-          const mid = Math.floor(t.length/2);
-          let L = mid, R = mid+1;
-          function render(L,R){
-            const out = t.slice(L,R);
-            line.textContent = out;
-          }
-          render(L,R);
-          while(L>0 || R<t.length){
-            if(L>0) L--;
-            if(R<t.length) R++;
-            render(L,R);
-            await wait(TYPE*0.65);
-          }
-          // swap to full with accent
-          line.innerHTML = finalHTML(m);
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
-
-    "Ghost Preview Overlay": ()=>{
-      let ghost;
-      return {
-        async in(m){
-          line.className='line';
-          const t = plain(m);
-          // add ghost layer once
-          const hero = line.parentElement;
-          hero.querySelector('.ghost')?.remove();
-          ghost = document.createElement('div');
-          ghost.className='ghost';
-          ghost.style.font = 'inherit'; ghost.style.textAlign='inherit';
-          ghost.textContent = t;
-          hero.style.position='relative';
-          hero.appendChild(ghost);
-          line.innerHTML='';
-          for(let i=0;i<t.length;i++){
-            line.textContent = t.slice(0,i+1);
-            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
-            await wait(TYPE*0.9);
-          }
-          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
-        },
-        async out(){
-          await effects["Classic Typewriter"]().out();
-          line.parentElement.querySelector('.ghost')?.remove();
-        }
-      };
-    },
-
-    "Decoder / Scramble": ()=>{
-      const chars = "!<>-_\\/[]{}—=+*^?#________";
-      return {
-        async in(m){
-          line.className='line';
-          const target = plain(m);
-          let out = new Array(target.length).fill('');
-          for(let i=0;i<target.length;i++){
-            // scramble phase
-            for(let k=0;k<6;k++){
-              out[i] = chars[Math.floor(Math.random()*chars.length)];
-              line.innerHTML = out.join('') + `<span class="caret blink"></span>`;
-              await wait(18);
-            }
-            out[i] = target[i];
-            line.innerHTML = out.join('') + `<span class="caret blink"></span>`;
-            await wait(24);
-          }
-          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
-
-    "Slide Caret (beam)": ()=>{
-      return {
-        async in(m){
-          line.className='line';
-          const t = plain(m);
-          line.textContent = '';
-          for(let i=0;i<t.length;i++){
-            line.textContent = t.slice(0,i+1);
-            // beam caret appended as 2px bar
-            line.insertAdjacentHTML('beforeend', `<span class="caret beam blink"></span>`);
-            await wait(TYPE*0.85);
-          }
-          line.innerHTML = finalHTML(m) + `<span class="caret beam blink"></span>`;
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
-
-    "Underline Caret": ()=>{
-      return {
-        async in(m){
-          line.className='line';
-          const t = plain(m);
-          line.textContent='';
-          for(let i=0;i<t.length;i++){
-            line.textContent = t.slice(0,i+1);
-            line.insertAdjacentHTML('beforeend', `<span class="caret underscore blink"></span>`);
-            await wait(TYPE*0.85);
-          }
-          line.innerHTML = finalHTML(m) + `<span class="caret underscore blink"></span>`;
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
-
-    "Glow Trail": ()=>{
-      return {
-        async in(m){
-          line.className='line glow';
-          const t = plain(m);
-          line.innerHTML='';
-          // build spans to glow per typed char
-          for(const ch of t){
-            const s = document.createElement('span');
-            s.textContent = ch;
-            s.style.opacity = 0;
-            line.appendChild(s);
-          }
-          const nodes = Array.from(line.childNodes);
-          for(let i=0;i<nodes.length;i++){
-            nodes[i].style.opacity = 1;
-            nodes[i].classList.add('typed');
-            await wait(TYPE*0.85);
-          }
-          // recolor accent range
-          const ai = t.indexOf(m.accent);
-          if(ai>=0) for(let j=ai;j<ai+m.accent.length;j++) nodes[j].style.color='var(--accent)';
-          line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
-
-    "Fade Trail": ()=>{
-      return {
-        async in(m){
-          line.className='line trail';
-          const t = plain(m);
-          line.innerHTML='';
-          for(const ch of t){
-            const s = document.createElement('span');
-            s.textContent = ch;
-            line.appendChild(s);
-            // fade previous char
-            const prev = s.previousSibling;
-            if(prev && prev.nodeType===1){ prev.classList.add('fade'); }
-            await wait(TYPE*0.8);
-          }
-          // color accent
-          const ai = t.indexOf(m.accent);
-          if(ai>=0){
-            const nodes = Array.from(line.childNodes);
-            for(let j=ai;j<ai+m.accent.length;j++) nodes[j].style.color='var(--accent)';
-          }
-          line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
-        },
-        async out(){ await effects["Classic Typewriter"]().out(); }
-      };
-    },
-  };
-
-  // ---------- Runner ----------
-  let idx = 0, paused = false;
-  let current = effects[fxSel.value]();
-
-  async function typeCycle(){
-    while(true){
+  // Runner
+  let idx=0, paused=false, loop=true;
+  async function cycle(){
+    while(loop){
       if(paused){ await wait(80); continue; }
-      const m = msgs[idx % msgs.length];
-      await current.in(m);
-      if(paused){ await wait(80); continue; }
-      await wait(HOLD);
-      await current.out();
+      await typeOne(msgs[idx % msgs.length]);
       idx = (idx+1) % msgs.length;
     }
   }
 
-  fxSel.addEventListener('change', ()=>{ current = effects[fxSel.value](); });
+  // Controls
   btnPrev.addEventListener('click', async ()=>{
     if(paused) return; paused=true; btnPause.textContent='▶';
-    await current.out(); idx=(idx-1+msgs.length)%msgs.length;
+    idx = (idx-1+msgs.length)%msgs.length;
     paused=false; btnPause.textContent='⏸';
   });
   btnNext.addEventListener('click', async ()=>{
     if(paused) return; paused=true; btnPause.textContent='▶';
-    await current.out(); idx=(idx+1)%msgs.length;
+    idx = (idx+1)%msgs.length;
     paused=false; btnPause.textContent='⏸';
   });
   btnPause.addEventListener('click', ()=>{ paused=!paused; btnPause.textContent = paused?'▶':'⏸'; });
@@ -408,7 +200,7 @@
     if(e.code==='ArrowLeft') btnPrev.click();
   });
 
-  (async()=>{ await wait(200); typeCycle(); })();
+  (async()=>{ await wait(200); cycle(); })();
 })();
 </script>
 </body>
