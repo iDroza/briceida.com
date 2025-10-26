@@ -3,104 +3,52 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Text FX Lab</title>
+<title>Typing Effects Lab</title>
 <style>
-  :root{
-    --bg:#000; --fg:#fff; --accent:#9900FF;
-    --muted:#444; --border:rgba(255,255,255,.14);
-  }
-  html,body{
-    height:100%; margin:0; background:var(--bg); color:var(--fg);
+  :root{ --bg:#000; --fg:#fff; --accent:#9900FF; --muted:#666; --border:rgba(255,255,255,.14); }
+  html,body{ height:100%; margin:0; background:var(--bg); color:var(--fg);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
-    font-weight:700; -webkit-font-smoothing:antialiased; overflow:hidden;
-  }
-  .wrap{
-    position:relative; min-height:100%; display:grid; place-items:center; padding:2rem; text-align:center;
-  }
-  .hero{
-    display:inline-block; border:1px solid var(--border); border-radius:24px;
-    padding:clamp(16px,3vw,32px) clamp(18px,4vw,52px);
-    box-shadow:0 10px 30px rgba(0,0,0,.45);
-    user-select:none; transform-style:preserve-3d;
-  }
-  .line{
-    margin:0; letter-spacing:.2px; line-height:1.05;
-    font-size:clamp(28px,6vw,72px); white-space:pre-wrap;
-  }
+    font-weight:700; -webkit-font-smoothing:antialiased; overflow:hidden; }
+  .wrap{ min-height:100%; display:grid; place-items:center; padding:2rem; text-align:center; }
+  .hero{ display:inline-block; border:1px solid var(--border); border-radius:24px;
+    padding:clamp(16px,3vw,32px) clamp(18px,4vw,52px); box-shadow:0 10px 30px rgba(0,0,0,.45); }
+  .line{ margin:0; letter-spacing:.2px; line-height:1.05; font-size:clamp(28px,6vw,72px); white-space:pre-wrap; }
   .accent{ color:var(--accent); }
-  .cursor{
-    display:inline-block; width:.6ch; height:1em; background:currentColor; vertical-align:-.1em;
-    animation:blink 1s steps(1) infinite;
-  }
-  @keyframes blink{50%{opacity:0}}
-
+  /* Carets */
+  .caret{ display:inline-block; width:.6ch; height:1em; background:currentColor; vertical-align:-.08em; }
+  .blink { animation: blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0 } }
+  .beam { width:2px; transform:translateY(.08em); }
+  .underscore { height:2px; width:0.7em; transform:translateY(.45em); }
   /* Control tray */
-  .tray{
-    position:fixed; right:16px; top:16px; display:flex; gap:8px; align-items:center;
-    background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:8px 10px;
-    backdrop-filter: blur(6px);
-  }
-  .tray label{font-size:.8rem; color:#aaa; font-weight:600;}
-  .tray select, .tray button{
-    background:#111; color:#ddd; border:1px solid #2a2a2a; border-radius:8px; padding:6px 8px; font-weight:600;
-  }
-  .tray button{cursor:pointer}
-  .hint{
-    position:fixed; left:16px; bottom:16px; color:#888; font-size:.8rem; letter-spacing:.3px;
-  }
-
-  /* Shared span staging for per-letter/word effects */
-  .unit { display:inline-block; will-change:transform,opacity,filter; }
-
-  /* Effect-specific keyframes (used by multiple effects) */
-  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-  @keyframes fadeOut{ from{opacity:1} to{opacity:0} }
-  @keyframes slideUpIn { from{transform:translateY(20px); opacity:0} to{transform:translateY(0); opacity:1} }
-  @keyframes slideDownOut { from{transform:translateY(0); opacity:1} to{transform:translateY(20px); opacity:0} }
-  @keyframes zoomIn { from{transform:scale(.92); opacity:0} to{transform:scale(1); opacity:1} }
-  @keyframes zoomOut{ from{transform:scale(1); opacity:1} to{transform:scale(.92); opacity:0} }
-  @keyframes dropIn { from{transform:translateY(-40px) rotate(-2deg); opacity:0} to{transform:translateY(0) rotate(0); opacity:1} }
-  @keyframes dropOut{ from{transform:translateY(0) rotate(0); opacity:1} to{transform:translateY(40px) rotate(2deg); opacity:0} }
-  @keyframes neonOn { 0%{opacity:.1} 20%{opacity:1} 30%{opacity:.2} 40%{opacity:1} 45%{opacity:.5} 55%{opacity:1} 100%{opacity:1} }
-  @keyframes neonOff{ to{opacity:0} }
-
-  /* Glitch helper */
-  .gl { position:relative; }
-  .gl::before, .gl::after{
-    content:attr(data-text); position:absolute; inset:0; clip-path:inset(0 0 0 0);
-  }
-  .gl::before{ color:#f0f; mix-blend-mode:screen; transform:translate(1px,0); animation:gl1 1.2s infinite steps(2) }
-  .gl::after{  color:#0ff; mix-blend-mode:screen; transform:translate(-1px,0); animation:gl2 1.1s infinite steps(2) }
-  @keyframes gl1{ 50%{clip-path:inset(10% 0 40% 0)} }
-  @keyframes gl2{ 50%{clip-path:inset(60% 0 5% 0)} }
-
-  /* Swipe mask (reveal) */
-  .mask{
-    position:relative; display:inline-block; overflow:hidden;
-  }
-  .mask>.reveal{
-    position:absolute; left:0; top:0; bottom:0; width:0%;
-    background:var(--fg); mix-blend-mode:destination-out;
-    animation: none;
-  }
+  .tray{ position:fixed; right:16px; top:16px; display:flex; gap:8px; align-items:center;
+    background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:8px 10px; backdrop-filter:blur(6px); }
+  .tray label{ font-size:.8rem; color:#aaa; font-weight:600; }
+  .tray select,.tray button{ background:#111; color:#ddd; border:1px solid #2a2a2a; border-radius:8px; padding:6px 8px; font-weight:600; }
+  .tray button{ cursor:pointer }
+  .hint{ position:fixed; left:16px; bottom:16px; color:#888; font-size:.8rem; letter-spacing:.3px; }
+  /* Effects visuals */
+  .ghost{ color:var(--muted); opacity:.35; position:absolute; inset:0; pointer-events:none; }
+  .glow span.typed { text-shadow:0 0 8px rgba(153,0,255,.35), 0 0 20px rgba(153,0,255,.22); transition:text-shadow .2s ease; }
+  .trail span.fade { opacity:.35; }
 </style>
 </head>
 <body>
   <div class="tray">
-    <label for="fx">FX</label>
+    <label for="fx">Typing FX</label>
     <select id="fx">
-      <option>Typewriter</option>
-      <option>Fade</option>
-      <option>Slide Up</option>
-      <option>Zoom</option>
-      <option>Word Fade</option>
-      <option>Scramble (Decoder)</option>
-      <option>Glitch</option>
-      <option>Neon Flicker</option>
-      <option>Swipe Reveal</option>
-      <option>Letter Drop</option>
-      <option>Wave</option>
-      <option>Pixelate</option>
+      <option>Classic Typewriter</option>
+      <option>Human Jitter</option>
+      <option>Mistype & Correct</option>
+      <option>Word-by-Word</option>
+      <option>Reverse Type</option>
+      <option>Center-Out Type</option>
+      <option>Ghost Preview Overlay</option>
+      <option>Decoder / Scramble</option>
+      <option>Slide Caret (beam)</option>
+      <option>Underline Caret</option>
+      <option>Glow Trail</option>
+      <option>Fade Trail</option>
     </select>
     <button id="prev">◀</button>
     <button id="next">▶</button>
@@ -110,6 +58,7 @@
   <div class="wrap">
     <div class="hero">
       <h1 class="line" id="line"></h1>
+      <!-- ghost layer is injected only for the Ghost effect -->
     </div>
   </div>
 
@@ -121,9 +70,9 @@
   const fxSel = document.getElementById('fx');
   const btnPrev = document.getElementById('prev');
   const btnNext = document.getElementById('next');
-  const btnPause = document.getElementById('pause');
+  const btnPause= document.getElementById('pause');
 
-  // Messages (edit freely)
+  // Your messages; accent is rendered purple within the sentence.
   const msgs = [
     {text:`The world is `, accent:`yours`, end:`.`},
     {text:`What are you so `, accent:`afraid`, end:` of?`},
@@ -136,387 +85,330 @@
     {text:`I am `, accent:`invincible`, end:`.`}
   ];
 
-  // Engine timing
-  const HOLD = 1100;           // ms visible before erase
-  const TYPE = 60;             // per-char for typing
-  const TYPE_FAST = 28;
+  const HOLD = 1100;             // ms to hold before erase
+  const TYPE = 55;               // base per-char
   const ERASE = 36;
-
-  // Utility
   const wait = ms => new Promise(r=>setTimeout(r,ms));
-  const splitWords = s => s.trim().split(/\s+/);
-  const letters = s => Array.from(s);
-  function buildParts(m){
-    const pre = m.text;
-    const a = m.accent;
-    return [pre, a ? `<span class="accent">${a}</span>` : "", m.end||""].join("");
-  }
 
-  // EFFECTS API: each returns {in(text), out()}
+  // Build final HTML string with accent span
+  function finalHTML(m){ return `${m.text}<span class="accent">${m.accent||""}</span>${m.end||""}`; }
+  function plain(m){ return (m.text||"") + (m.accent||"") + (m.end||""); }
+  function splitWords(s){ return s.match(/\S+\s*/g) || []; }
+
+  // ---------- EFFECTS (each returns {in(m), out()}) ----------
   const effects = {
-    "Typewriter": ()=>{
-      let stop=false;
+    "Classic Typewriter": ()=>{
       return {
         async in(m){
-          stop=false;
-          const t = buildParts(m).replace(/<[^>]+>/g,""); // type raw then swap
-          line.innerHTML = "";
-          for(const ch of letters(t)){
-            if(stop) return;
-            line.innerHTML += ch;
+          line.className='line';
+          const t = plain(m);
+          line.innerHTML = '';
+          for (let i=0;i<t.length;i++){
+            line.textContent = t.slice(0,i+1);
+            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
             await wait(TYPE);
           }
-          // inject accent markup
-          const a = buildParts(m);
-          line.innerHTML = a + ` <span class="cursor"></span>`;
+          // swap in accent markup
+          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
         },
         async out(){
-          let html = line.innerText; // strip cursor
-          // erase quickly
-          while(html.length>0){
-            html = html.slice(0,-1);
-            line.textContent = html;
+          let s = line.innerText;
+          while(s.length){
+            s = s.slice(0,-1);
+            line.textContent = s;
             await wait(ERASE);
           }
-          line.innerHTML = "";
-        },
-        stop(){ stop=true; }
+          line.innerHTML='';
+        }
       };
     },
 
-    "Fade": ()=>{
+    "Human Jitter": ()=>{
+      const jitter = (b)=> b + Math.floor((Math.random()*40)-20);
       return {
         async in(m){
-          line.style.animation = "fadeIn .35s ease forwards";
-          line.innerHTML = buildParts(m);
-          await wait(350);
-        },
-        async out(){
-          line.style.animation = "fadeOut .25s ease forwards";
-          await wait(250);
-          line.innerHTML="";
-          line.style.animation = "";
-        }
-      }
-    },
-
-    "Slide Up": ()=>{
-      return {
-        async in(m){
-          line.style.animation = "slideUpIn .35s cubic-bezier(.2,.7,.2,1) forwards";
-          line.innerHTML = buildParts(m);
-          await wait(350);
-        },
-        async out(){
-          line.style.animation = "slideDownOut .28s ease forwards";
-          await wait(280);
-          line.innerHTML=""; line.style.animation="";
-        }
-      }
-    },
-
-    "Zoom": ()=>{
-      return {
-        async in(m){
-          line.style.animation = "zoomIn .28s ease-out forwards";
-          line.innerHTML = buildParts(m);
-          await wait(280);
-        },
-        async out(){
-          line.style.animation = "zoomOut .22s ease-in forwards";
-          await wait(220);
-          line.innerHTML=""; line.style.animation="";
-        }
-      }
-    },
-
-    "Word Fade": ()=>{
-      let spans=[];
-      return {
-        async in(m){
-          const words = splitWords((m.text + (m.accent? m.accent+" ":"") + (m.end||"")).trim());
-          spans = words.map(w=>{
-            const el = document.createElement("span");
-            el.className="unit"; el.style.opacity=0; el.textContent=w+" ";
-            return el;
-          });
-          // rebuild with accent colored
-          const full = buildParts(m);
-          // map accent by content (fallback: mid word)
-          const idx = words.findIndex(w=> w.replace(/[^\w]/g,"").toLowerCase() === (m.accent||"").toLowerCase());
-          line.innerHTML="";
-          spans.forEach((s,i)=>{
-            if(i===idx) s.innerHTML = `<span class="accent">${words[i]}</span> `;
-            line.appendChild(s);
-          });
-          for(let i=0;i<spans.length;i++){
-            spans[i].style.animation="fadeIn .2s ease forwards";
-            spans[i].style.animationDelay = `${i*40}ms`;
+          line.className='line';
+          const t = plain(m);
+          line.innerHTML='';
+          for (let i=0;i<t.length;i++){
+            line.textContent = t.slice(0,i+1);
+            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
+            await wait(Math.max(20, jitter(TYPE)));
           }
-          await wait(spans.length*40+220);
+          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
         },
-        async out(){
-          const spans2 = Array.from(line.children);
-          for(let i=spans2.length-1;i>=0;i--){
-            spans2[i].style.animation="fadeOut .15s ease forwards";
-            spans2[i].style.animationDelay = `${(spans2.length-1-i)*30}ms`;
-          }
-          await wait(spans2.length*30+160);
-          line.innerHTML="";
-        }
-      }
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
     },
 
-    "Scramble (Decoder)": ()=>{
+    "Mistype & Correct": ()=>{
+      return {
+        async in(m){
+          line.className='line';
+          const t = plain(m);
+          line.innerHTML='';
+          let s='';
+          for(let i=0;i<t.length;i++){
+            // occasional wrong char, then backspace
+            if(Math.random()<0.12){
+              const wrong = String.fromCharCode(33+Math.floor(Math.random()*60));
+              s += wrong; line.textContent = s;
+              line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
+              await wait(TYPE*0.9);
+              // backspace
+              s = s.slice(0,-1); line.textContent = s;
+              line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
+              await wait(TYPE*0.7);
+            }
+            s += t[i]; line.textContent = s;
+            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
+            await wait(TYPE);
+          }
+          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
+        },
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
+    },
+
+    "Word-by-Word": ()=>{
+      return {
+        async in(m){
+          line.className='line';
+          const words = splitWords(plain(m));
+          line.innerHTML='';
+          let s='';
+          for(const w of words){
+            s += w; line.textContent = s;
+            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
+            await wait(TYPE*2);
+          }
+          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
+        },
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
+    },
+
+    "Reverse Type": ()=>{
+      return {
+        async in(m){
+          line.className='line';
+          const t = plain(m);
+          for(let i=t.length;i>=0;i--){
+            line.textContent = t.slice(i);
+            line.insertAdjacentHTML('afterbegin', `<span class="caret blink"></span>`);
+            await wait(TYPE*0.8);
+          }
+          line.innerHTML = finalHTML(m);
+        },
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
+    },
+
+    "Center-Out Type": ()=>{
+      return {
+        async in(m){
+          line.className='line';
+          const t = plain(m);
+          const mid = Math.floor(t.length/2);
+          let L = mid, R = mid+1;
+          function render(L,R){
+            const out = t.slice(L,R);
+            line.textContent = out;
+          }
+          render(L,R);
+          while(L>0 || R<t.length){
+            if(L>0) L--;
+            if(R<t.length) R++;
+            render(L,R);
+            await wait(TYPE*0.65);
+          }
+          // swap to full with accent
+          line.innerHTML = finalHTML(m);
+        },
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
+    },
+
+    "Ghost Preview Overlay": ()=>{
+      let ghost;
+      return {
+        async in(m){
+          line.className='line';
+          const t = plain(m);
+          // add ghost layer once
+          const hero = line.parentElement;
+          hero.querySelector('.ghost')?.remove();
+          ghost = document.createElement('div');
+          ghost.className='ghost';
+          ghost.style.font = 'inherit'; ghost.style.textAlign='inherit';
+          ghost.textContent = t;
+          hero.style.position='relative';
+          hero.appendChild(ghost);
+          line.innerHTML='';
+          for(let i=0;i<t.length;i++){
+            line.textContent = t.slice(0,i+1);
+            line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
+            await wait(TYPE*0.9);
+          }
+          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
+        },
+        async out(){
+          await effects["Classic Typewriter"]().out();
+          line.parentElement.querySelector('.ghost')?.remove();
+        }
+      };
+    },
+
+    "Decoder / Scramble": ()=>{
       const chars = "!<>-_\\/[]{}—=+*^?#________";
-      let frame=0, queue=[];
-      function doScramble(el, from, to){
-        const len = Math.max(from.length, to.length);
-        queue = [];
-        for(let i=0;i<len;i++){
-          const fromCh = from[i] || "";
-          const toCh   = to[i] || "";
-          const start = Math.floor(Math.random()*20);
-          const end   = start + Math.floor(Math.random()*20);
-          queue.push({fromCh, toCh, start, end, ch:""});
-        }
-        frame=0;
-        return new Promise(res=>{
-          function update(){
-            let out="";
-            let complete=0;
-            for(const q of queue){
-              if(frame>=q.end){ complete++; out += q.toCh; }
-              else if(frame>=q.start){
-                if(!q.ch || Math.random()<.28) q.ch = chars[Math.floor(Math.random()*chars.length)];
-                out += `<span class="accent">${q.ch}</span>`;
-              }else{
-                out += q.fromCh;
-              }
+      return {
+        async in(m){
+          line.className='line';
+          const target = plain(m);
+          let out = new Array(target.length).fill('');
+          for(let i=0;i<target.length;i++){
+            // scramble phase
+            for(let k=0;k<6;k++){
+              out[i] = chars[Math.floor(Math.random()*chars.length)];
+              line.innerHTML = out.join('') + `<span class="caret blink"></span>`;
+              await wait(18);
             }
-            el.innerHTML = out;
-            frame++;
-            if(complete===queue.length) res(); else requestAnimationFrame(update);
+            out[i] = target[i];
+            line.innerHTML = out.join('') + `<span class="caret blink"></span>`;
+            await wait(24);
           }
-          update();
-        });
-      }
-      return {
-        async in(m){
-          await doScramble(line, "", (m.text + m.accent + (m.end||"")));
+          line.innerHTML = finalHTML(m) + `<span class="caret blink"></span>`;
         },
-        async out(){
-          await doScramble(line, line.innerText, "");
-          line.innerHTML="";
-        }
-      }
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
     },
 
-    "Glitch": ()=>{
+    "Slide Caret (beam)": ()=>{
       return {
         async in(m){
-          const t = (m.text||"") + (m.accent||"") + (m.end||"");
-          line.classList.add("gl");
-          line.setAttribute("data-text", t);
-          line.innerHTML = buildParts(m);
-          await wait(700);
-        },
-        async out(){
-          line.style.animation="fadeOut .2s ease forwards";
-          await wait(200);
-          line.removeAttribute("data-text");
-          line.classList.remove("gl");
-          line.innerHTML="";
-          line.style.animation="";
-        }
-      }
-    },
-
-    "Neon Flicker": ()=>{
-      return {
-        async in(m){
-          line.style.textShadow = `0 0 8px var(--accent), 0 0 24px var(--accent)`;
-          line.style.animation = "neonOn 1s ease-in-out both";
-          line.innerHTML = buildParts(m);
-          await wait(1000);
-        },
-        async out(){
-          line.style.animation = "neonOff .25s linear forwards";
-          await wait(250);
-          line.style.textShadow="none";
-          line.innerHTML=""; line.style.animation="";
-        }
-      }
-    },
-
-    "Swipe Reveal": ()=>{
-      let bar;
-      return {
-        async in(m){
-          line.innerHTML = `<span class="mask">${buildParts(m)}<i class="reveal"></i></span>`;
-          bar = line.querySelector('.reveal');
-          // animate bar from 0% to 100% (reveals behind)
-          bar.animate([{width:"0%"},{width:"100%"}],{duration:500, easing:"cubic-bezier(.2,.7,.2,1)", fill:"forwards"});
-          await wait(520);
-        },
-        async out(){
-          // wipe back
-          bar.animate([{width:"100%"},{width:"0%"}],{duration:350, easing:"ease-in", fill:"forwards"});
-          await wait(360);
-          line.innerHTML="";
-        }
-      }
-    },
-
-    "Letter Drop": ()=>{
-      return {
-        async in(m){
-          const full = buildParts(m);
-          const raw = full.replace(/<[^>]+>/g,"");
-          line.innerHTML = "";
-          for (const ch of letters(raw)){
-            const span = document.createElement("span");
-            span.className = "unit";
-            span.textContent = ch;
-            span.style.opacity=0;
-            line.appendChild(span);
+          line.className='line';
+          const t = plain(m);
+          line.textContent = '';
+          for(let i=0;i<t.length;i++){
+            line.textContent = t.slice(0,i+1);
+            // beam caret appended as 2px bar
+            line.insertAdjacentHTML('beforeend', `<span class="caret beam blink"></span>`);
+            await wait(TYPE*0.85);
           }
-          // repaint with accent
-          const idx = raw.indexOf(m.accent);
-          if(idx>=0){
-            const nodes = Array.from(line.childNodes);
-            for(let i=idx;i<idx+m.accent.length;i++){
-              nodes[i].style.color = "var(--accent)";
-            }
+          line.innerHTML = finalHTML(m) + `<span class="caret beam blink"></span>`;
+        },
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
+    },
+
+    "Underline Caret": ()=>{
+      return {
+        async in(m){
+          line.className='line';
+          const t = plain(m);
+          line.textContent='';
+          for(let i=0;i<t.length;i++){
+            line.textContent = t.slice(0,i+1);
+            line.insertAdjacentHTML('beforeend', `<span class="caret underscore blink"></span>`);
+            await wait(TYPE*0.85);
+          }
+          line.innerHTML = finalHTML(m) + `<span class="caret underscore blink"></span>`;
+        },
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
+    },
+
+    "Glow Trail": ()=>{
+      return {
+        async in(m){
+          line.className='line glow';
+          const t = plain(m);
+          line.innerHTML='';
+          // build spans to glow per typed char
+          for(const ch of t){
+            const s = document.createElement('span');
+            s.textContent = ch;
+            s.style.opacity = 0;
+            line.appendChild(s);
           }
           const nodes = Array.from(line.childNodes);
           for(let i=0;i<nodes.length;i++){
-            nodes[i].style.animation="dropIn .22s ease-out forwards";
-            nodes[i].style.animationDelay = `${i*18}ms`;
+            nodes[i].style.opacity = 1;
+            nodes[i].classList.add('typed');
+            await wait(TYPE*0.85);
           }
-          await wait(nodes.length*18+260);
+          // recolor accent range
+          const ai = t.indexOf(m.accent);
+          if(ai>=0) for(let j=ai;j<ai+m.accent.length;j++) nodes[j].style.color='var(--accent)';
+          line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
         },
-        async out(){
-          const nodes = Array.from(line.childNodes);
-          for(let i=nodes.length-1;i>=0;i--){
-            nodes[i].style.animation="dropOut .16s ease-in forwards";
-            nodes[i].style.animationDelay = `${(nodes.length-1-i)*12}ms`;
-          }
-          await wait(nodes.length*12+200);
-          line.innerHTML="";
-        }
-      }
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
     },
 
-    "Wave": ()=>{
+    "Fade Trail": ()=>{
       return {
         async in(m){
-          const full = buildParts(m).replace(/<[^>]+>/g,"");
-          line.innerHTML="";
-          const nodes=[];
-          [...full].forEach((ch,i)=>{
-            const s=document.createElement("span");
-            s.className="unit";
-            s.textContent=ch;
-            s.style.opacity=0;
-            s.style.transform="translateY(8px)";
-            s.style.transition="transform .25s ease, opacity .25s ease";
-            s.style.transitionDelay = `${i*22}ms`;
-            nodes.push(s); line.appendChild(s);
-          });
-          await wait(10);
-          nodes.forEach((n,i)=>{
-            // accent color range
-            if(full.slice(i, i+(m.accent||"").length) === m.accent) n.style.color="var(--accent)";
-            n.style.opacity=1; n.style.transform="translateY(0)";
-          });
-          await wait(nodes.length*22+260);
+          line.className='line trail';
+          const t = plain(m);
+          line.innerHTML='';
+          for(const ch of t){
+            const s = document.createElement('span');
+            s.textContent = ch;
+            line.appendChild(s);
+            // fade previous char
+            const prev = s.previousSibling;
+            if(prev && prev.nodeType===1){ prev.classList.add('fade'); }
+            await wait(TYPE*0.8);
+          }
+          // color accent
+          const ai = t.indexOf(m.accent);
+          if(ai>=0){
+            const nodes = Array.from(line.childNodes);
+            for(let j=ai;j<ai+m.accent.length;j++) nodes[j].style.color='var(--accent)';
+          }
+          line.insertAdjacentHTML('beforeend', `<span class="caret blink"></span>`);
         },
-        async out(){
-          const nodes = Array.from(line.childNodes);
-          nodes.forEach((n,i)=>{
-            n.style.transitionDelay = `${i*14}ms`;
-            n.style.transform="translateY(-8px)"; n.style.opacity=0;
-          });
-          await wait(nodes.length*14+220);
-          line.innerHTML="";
-        }
-      }
+        async out(){ await effects["Classic Typewriter"]().out(); }
+      };
     },
-
-    "Pixelate": ()=>{
-      return {
-        async in(m){
-          line.style.filter="blur(6px) contrast(1.2) saturate(1.1)";
-          line.style.imageRendering="pixelated";
-          line.style.transition="filter .4s ease";
-          line.innerHTML = buildParts(m);
-          await wait(10);
-          line.style.filter="blur(0) contrast(1) saturate(1)";
-          await wait(420);
-        },
-        async out(){
-          line.style.transition="filter .22s ease";
-          line.style.filter="blur(6px) contrast(.8)";
-          await wait(220);
-          line.innerHTML=""; line.style.filter="none"; line.style.transition="";
-        }
-      }
-    }
   };
 
-  // State + runner
-  let idx = 0;
-  let paused = false;
+  // ---------- Runner ----------
+  let idx = 0, paused = false;
   let current = effects[fxSel.value]();
 
-  function setText(m){ /* convenience */ }
-  function buildMsg(i){
-    const m = msgs[i % msgs.length];
-    return { text: m.text, accent: m.accent, end: m.end };
-  }
-
-  async function cycle(){
+  async function typeCycle(){
     while(true){
-      if(paused){ await wait(100); continue; }
-      const m = buildMsg(idx);
+      if(paused){ await wait(80); continue; }
+      const m = msgs[idx % msgs.length];
       await current.in(m);
-      if(paused){ await wait(100); continue; }
+      if(paused){ await wait(80); continue; }
       await wait(HOLD);
       await current.out();
       idx = (idx+1) % msgs.length;
     }
   }
 
-  // Controls
-  fxSel.addEventListener('change', ()=>{
-    current = effects[fxSel.value]();
-  });
+  fxSel.addEventListener('change', ()=>{ current = effects[fxSel.value](); });
   btnPrev.addEventListener('click', async ()=>{
-    if(paused) return;
-    paused = true; btnPause.textContent="▶";
-    await current.out(); idx = (idx-1+msgs.length)%msgs.length;
-    paused = false; btnPause.textContent="⏸";
+    if(paused) return; paused=true; btnPause.textContent='▶';
+    await current.out(); idx=(idx-1+msgs.length)%msgs.length;
+    paused=false; btnPause.textContent='⏸';
   });
   btnNext.addEventListener('click', async ()=>{
-    if(paused) return;
-    paused = true; btnPause.textContent="▶";
-    await current.out(); idx = (idx+1)%msgs.length;
-    paused = false; btnPause.textContent="⏸";
+    if(paused) return; paused=true; btnPause.textContent='▶';
+    await current.out(); idx=(idx+1)%msgs.length;
+    paused=false; btnPause.textContent='⏸';
   });
-  btnPause.addEventListener('click', ()=>{ paused=!paused; btnPause.textContent = paused ? "▶" : "⏸"; });
-
-  window.addEventListener('keydown', (e)=>{
-    if(e.code==="Space"){ e.preventDefault(); btnPause.click(); }
-    if(e.code==="ArrowRight"){ btnNext.click(); }
-    if(e.code==="ArrowLeft"){ btnPrev.click(); }
+  btnPause.addEventListener('click', ()=>{ paused=!paused; btnPause.textContent = paused?'▶':'⏸'; });
+  window.addEventListener('keydown',(e)=>{
+    if(e.code==='Space'){ e.preventDefault(); btnPause.click(); }
+    if(e.code==='ArrowRight') btnNext.click();
+    if(e.code==='ArrowLeft') btnPrev.click();
   });
 
-  // Kickoff
-  (async function(){
-    await wait(200);
-    cycle();
-  })();
+  (async()=>{ await wait(200); typeCycle(); })();
 })();
 </script>
 </body>
