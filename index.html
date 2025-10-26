@@ -3,285 +3,249 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Highlight Effects Lab</title>
+<title>OG Underscore Caret — Terminal Sandbox</title>
 <style>
   :root{
-    --bg:#000; --fg:#fff; --accent:#9900FF; --border:rgba(255,255,255,.14);
-    --note:#8a8a8a;
+    --bg:#000000; --fg:#b7ffb7; --accent:#00ff55;
+    --glow:rgba(0,255,128,.28); --caret:#b7ffb7;
+    --border:#1b1b1b;
+    --blink:0.9s;
+    --thick:2px;            /* default underline thickness */
   }
+
   html,body{
-    height:100%; margin:0; background:var(--bg); color:var(--fg);
-    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
-    font-weight:700; -webkit-font-smoothing:antialiased; overflow:hidden;
-  }
-  .wrap{ min-height:100%; display:grid; place-items:center; padding:2rem; text-align:center; }
-  .hero{ display:inline-block; border:1px solid var(--border); border-radius:24px;
-         padding:clamp(16px,3vw,32px) clamp(18px,4vw,52px);
-         box-shadow:0 10px 30px rgba(0,0,0,.45); max-width:min(1200px,92vw); }
-  h1{ margin:0 0 18px 0; font-size:clamp(22px,2.4vw,28px); color:#bdbdbd; font-weight:800; letter-spacing:.4px; }
-  .line{ margin:0; letter-spacing:.2px; line-height:1.15; font-size:clamp(28px,6vw,64px); white-space:pre-wrap; }
-  .accent{ color:var(--accent); }
-  .muted{ color:var(--note); font-weight:600; letter-spacing:.3px; }
-
-  /* Control tray */
-  .tray{
-    position:fixed; right:16px; top:16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;
-    background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:8px 10px;
-    backdrop-filter: blur(6px);
-  }
-  .tray label{ font-size:.8rem; color:#aaa; font-weight:700; margin-right:4px; }
-  .tray select,.tray button,.tray input[type="checkbox"]{
-    background:#111; color:#ddd; border:1px solid #2a2a2a; border-radius:8px; padding:6px 8px; font-weight:700;
-  }
-  .tray button{ cursor:pointer }
-  .hint{ position:fixed; left:16px; bottom:16px; color:#888; font-size:.8rem; letter-spacing:.3px; }
-
-  /* ---------- 1) Native ::selection themes ---------- */
-  /* Base (overridable) */
-  ::selection{ background:rgba(153,0,255,.45); color:#fff; text-shadow:0 0 6px rgba(153,0,255,.35); }
-  ::-moz-selection{ background:rgba(153,0,255,.45); color:#fff; }
-  /* Blue Ice */
-  .sel-ice ::selection{ background:rgba(0,153,255,.45); color:#fff; text-shadow:0 0 6px rgba(0,153,255,.35); }
-  .sel-ice ::-moz-selection{ background:rgba(0,153,255,.45); color:#fff; }
-  /* Fire Orange */
-  .sel-fire ::selection{ background:rgba(255,140,0,.42); color:#111; text-shadow:none; }
-  .sel-fire ::-moz-selection{ background:rgba(255,140,0,.42); color:#111; }
-  /* High Contrast */
-  .sel-hi ::selection{ background:#fff; color:#000; text-shadow:none; }
-  .sel-hi ::-moz-selection{ background:#fff; color:#000; }
-  /* Monochrome Mist */
-  .sel-mono ::selection{ background:rgba(255,255,255,.18); color:#fff; text-shadow:0 0 10px rgba(255,255,255,.35); }
-  .sel-mono ::-moz-selection{ background:rgba(255,255,255,.18); color:#fff; }
-
-  /* ---------- 2) Committed highlight effects (after selection) ---------- */
-  /* Common mark styling */
-  mark.hl{
-    color:inherit;
-    -webkit-box-decoration-break:clone; box-decoration-break:clone;
-    padding:0 .05em .02em .05em; border-radius:.18em; position:relative; z-index:0;
-    transition:filter .2s ease, transform .2s ease;
-  }
-  /* Ink swipe (animated clip) */
-  mark.fx-ink{ background:#fff; color:#000; overflow:hidden; }
-  mark.fx-ink::before{
-    content:""; position:absolute; inset:0; background:linear-gradient(90deg,#fff, #ddd);
-    transform:scaleX(0); transform-origin:left; z-index:-1; animation:ink 450ms cubic-bezier(.2,.7,.2,1) forwards;
-  }
-  @keyframes ink{ to{ transform:scaleX(1) } }
-
-  /* Neon glow (solid with aura) */
-  mark.fx-neon{ background:#2b1440; box-shadow:0 0 0 0 rgba(153,0,255,.0); color:#fff; }
-  mark.fx-neon.anim{ box-shadow:0 0 8px rgba(153,0,255,.55), 0 0 22px rgba(153,0,255,.35); }
-
-  /* Marker texture (hand-drawn strokes) */
-  mark.fx-marker{
-    background:
-      linear-gradient(transparent 60%, rgba(255,255,0,.85) 60% 100%),
-      repeating-linear-gradient(0deg, rgba(255,255,0,.15) 0 3px, rgba(255,255,0,.0) 3px 6px);
-    color:#000; text-shadow:none;
-    box-shadow:inset 0 -1px 0 rgba(0,0,0,.25);
-    animation:markerIn 380ms ease-out both;
-  }
-  @keyframes markerIn{ from{ background-position:-100% 0, 0 0 } to{ background-position:0 0, 0 0 } }
-
-  /* Hatch stripes */
-  mark.fx-hatch{
-    background:
-      linear-gradient(transparent 62%, rgba(255,255,255,.22) 62% 100%),
-      repeating-linear-gradient(135deg, rgba(255,255,255,.25) 0 6px, rgba(255,255,255,0) 6px 12px);
-    color:#fff; text-shadow:0 1px 0 #000;
-    animation:hatchIn 420ms ease-out both;
-  }
-  @keyframes hatchIn{ from{ background-size:200% 100%, 20px 20px } to{ background-size:100% 100%, 12px 12px } }
-
-  /* Invert (film negative) */
-  mark.fx-invert{ filter:invert(1) hue-rotate(180deg) saturate(1.2); background:transparent; border-radius:.06em; }
-
-  /* Underline sweep (keeps text unfilled; animated underline grows) */
-  mark.fx-underline{
-    background:linear-gradient(transparent 70%, var(--accent) 70% 100%);
-    color:inherit;
-    background-size:0% 100%; background-repeat:no-repeat;
-    animation:underlineIn 420ms ease forwards;
-  }
-  @keyframes underlineIn{ to{ background-size:100% 100% } }
-
-  /* Shadow glow (soft outer glow) */
-  mark.fx-glow{ background:transparent; text-shadow:0 0 0 rgba(153,0,255,0); }
-  mark.fx-glow.anim{ text-shadow:0 0 10px rgba(153,0,255,.6), 0 0 24px rgba(153,0,255,.35); }
-
-  /* Ripple (subtle echo outward) */
-  mark.fx-ripple{ background:rgba(255,255,255,.12); }
-  mark.fx-ripple::after{
-    content:""; position:absolute; inset:-2px; border-radius:.2em;
-    box-shadow:0 0 0 0 rgba(255,255,255,.35); animation:rip 900ms ease-out forwards;
-  }
-  @keyframes rip{ to{ box-shadow:0 0 0 12px rgba(255,255,255,0) } }
-
-  /* Copperplate (metallic band) */
-  mark.fx-copper{
-    background:linear-gradient(180deg,#f8e7d0 0%,#d1a676 40%,#a06f3c 50%,#d1a676 60%,#f3dfc5 100%);
-    color:#1a0e05; text-shadow:0 1px 0 rgba(255,255,255,.3);
-    box-shadow:inset 0 -1px 0 rgba(0,0,0,.25);
-    animation:ink 480ms cubic-bezier(.2,.7,.2,1) forwards;
+    height:100%; margin:0; background:#000; color:var(--fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    -webkit-font-smoothing:antialiased;
   }
 
-  /* Carbon (dark brushed overlay) */
-  mark.fx-carbon{
-    background:
-      linear-gradient(transparent 62%, rgba(255,255,255,.10) 62% 100%),
-      repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 2px, rgba(255,255,255,0) 2px 4px);
-    color:#fff; text-shadow:0 1px 0 #000;
-    animation:hatchIn 360ms ease-out both;
+  .frame{
+    min-height:100%;
+    display:grid; grid-template-rows:auto 1fr auto; gap:8px;
+    padding:18px; box-sizing:border-box;
   }
 
-  /* Outline-only (no fill, bright rim) */
-  mark.fx-outline{
-    background:transparent; color:inherit;
-    box-shadow:inset 0 0 0 2px rgba(255,255,255,.85), 0 0 12px rgba(255,255,255,.2);
-    border-radius:.2em; padding:0 .15em; text-shadow:none;
-  }
-
-  /* Toolbar style */
   .toolbar{
-    margin-top:12px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    background:#0a0a0a; border:1px solid var(--border); border-radius:10px;
+    padding:8px 10px;
   }
-  .toolbar select, .toolbar button, .toolbar label{
-    background:#111; color:#ddd; border:1px solid #2a2a2a; border-radius:8px; padding:6px 10px; font-weight:700;
+  .toolbar label{ font-size:.85rem; color:#bcbcbc; font-weight:700; margin-right:6px; }
+  .toolbar select,.toolbar input[type="range"],.toolbar button{
+    background:#111; color:#e0e0e0; border:1px solid #2a2a2a; border-radius:8px; padding:6px 10px; font-weight:700;
+    outline:none;
   }
-  .toolbar button{ cursor:pointer }
+  .toolbar .toggle{
+    display:inline-flex; gap:6px; align-items:center; font-weight:700; color:#bcbcbc;
+  }
 
-  /* subtle instructions */
-  .note{ margin-top:10px; font-size:.85rem; }
+  .crt{
+    position:relative; overflow:hidden;
+    border:1px solid var(--border); border-radius:14px;
+    background: radial-gradient(100% 140% at 50% 50%, #050505 0%, #000 70%);
+    box-shadow:0 0 40px rgba(0,0,0,.6), inset 0 0 60px rgba(0,0,0,.6);
+  }
+  .scanlines::after{
+    content:""; position:absolute; inset:0;
+    background: repeating-linear-gradient(180deg, rgba(255,255,255,0.05) 0 1px, rgba(0,0,0,0) 1px 3px);
+    pointer-events:none; mix-blend-mode:overlay; opacity:.12;
+  }
+  .vignette::before{
+    content:""; position:absolute; inset:-6%;
+    background: radial-gradient(70% 70% at 50% 50%, rgba(0,0,0,0) 50%, rgba(0,0,0,.5) 100%);
+    pointer-events:none;
+  }
+
+  .screen{
+    position:relative; padding:26px; min-height:58vh; box-sizing:border-box;
+    font-size:clamp(14px, 2.2vw, 22px); line-height:1.35; letter-spacing:.2px;
+    text-shadow: 0 0 8px var(--glow), 0 0 18px var(--glow);
+    cursor:text;
+  }
+
+  .line{ white-space:pre; word-break:break-word; }
+
+  .prompt{ color:var(--accent); }
+
+  /* OG underscore caret */
+  .caret{
+    display:inline-block;
+    width:0.7em; height:var(--thick);
+    transform: translateY(.32em);
+    background:var(--caret);
+    vertical-align:baseline;
+    animation: blink var(--blink) steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0 } }
+
+  /* overwrite guide (thin bar above text when OVR) */
+  .ovr .caret{
+    box-shadow: 0 -1.05em 0 -0.95em var(--caret); /* tiny top rule to hint OVR */
+  }
+
+  /* THEMES */
+  .theme-green { --fg:#b7ffb7; --caret:#b7ffb7; --accent:#8aff8a; --glow:rgba(0,255,128,.25); }
+  .theme-amber { --fg:#ffd59a; --caret:#ffd59a; --accent:#ffc470; --glow:rgba(255,170,64,.25); }
+  .theme-ice   { --fg:#aee9ff; --caret:#aee9ff; --accent:#6ad0ff; --glow:rgba(120,210,255,.25); }
+  .theme-dirty { --fg:#e7e7e7; --caret:#e7e7e7; --accent:#f1f1f1; --glow:rgba(255,255,255,.18); filter:grayscale(.1) contrast(1.05) brightness(.9); }
+
+  .status{
+    display:flex; gap:16px; align-items:center; justify-content:space-between;
+    color:#9c9c9c; font-weight:800; padding:8px 2px;
+  }
+  .badgel, .badger{
+    display:inline-flex; align-items:center; gap:8px; font-weight:800;
+  }
+  .lamp{
+    width:9px; height:9px; border-radius:50%;
+    box-shadow:0 0 8px var(--accent);
+    background:var(--accent);
+  }
+  .dim{ opacity:.55 }
 </style>
 </head>
-<body class="sel-default">
-  <!-- Native selection theme switcher -->
-  <div class="tray">
-    <label for="selTheme">Native selection</label>
-    <select id="selTheme">
-      <option value="sel-default">Violet (default)</option>
-      <option value="sel-ice">Blue Ice</option>
-      <option value="sel-fire">Fire Orange</option>
-      <option value="sel-hi">High Contrast</option>
-      <option value="sel-mono">Monochrome Mist</option>
-    </select>
-  </div>
+<body class="theme-green">
+  <div class="frame">
+    <div class="toolbar">
+      <label>Theme
+        <select id="theme">
+          <option value="theme-green">Green Phosphor</option>
+          <option value="theme-amber">Amber Phosphor</option>
+          <option value="theme-ice">Ice (DOS/CGA cyan)</option>
+          <option value="theme-dirty">Dirty CRT (mono)</option>
+        </select>
+      </label>
 
-  <div class="wrap">
-    <div class="hero">
-      <h1>Highlight anything in the line below. On mouse-up, I’ll turn it into an <span class="accent">animated highlight</span>.</h1>
-      <p class="line" id="text">
-        The world is <span class="accent">yours</span>. What are you so <span class="accent">afraid</span> of?
-        Volume Negates <span class="accent">Luck</span>. Obedience <span class="accent">begets</span> mediocrity.
-        You don't win silver, you <span class="accent">lose</span> gold. This isn't real, you're <span class="accent">dreaming</span>.
-        I am <span class="accent">invincible</span>.
-      </p>
+      <label>Blink (ms)
+        <input id="blink" type="range" min="200" max="1600" step="50" value="900">
+      </label>
 
-      <div class="toolbar">
-        <label>
-          Effect
-          <select id="fx">
-            <option value="fx-ink">Ink Swipe</option>
-            <option value="fx-marker">Marker Texture</option>
-            <option value="fx-hatch">Hatch Stripes</option>
-            <option value="fx-underline">Underline Sweep</option>
-            <option value="fx-neon">Neon Glow</option>
-            <option value="fx-glow">Shadow Glow</option>
-            <option value="fx-ripple">Ripple Echo</option>
-            <option value="fx-invert">Invert Film</option>
-            <option value="fx-copper">Copperplate</option>
-            <option value="fx-carbon">Carbon Weave</option>
-            <option value="fx-outline">Outline Only</option>
-          </select>
-        </label>
+      <label>Thickness
+        <select id="thick">
+          <option value="1px">Hairline</option>
+          <option value="2px" selected>Classic</option>
+          <option value="3px">Bold</option>
+          <option value="4px">Heavy</option>
+        </select>
+      </label>
 
-        <label>
-          <input type="checkbox" id="auto" checked />
-          Auto-commit on select
-        </label>
+      <label class="toggle">
+        <input id="scan" type="checkbox" checked> Scanlines
+      </label>
+      <label class="toggle">
+        <input id="vig" type="checkbox" checked> Vignette
+      </label>
+      <button id="clear">CLS</button>
+    </div>
 
-        <button id="commit">Commit current selection</button>
-        <button id="clear">Clear highlights</button>
+    <div class="crt scanlines vignette" id="crt">
+      <div class="screen" id="screen" tabindex="0" aria-label="Terminal sandbox. Click to focus and type.">
+        <div class="line">
+          <span class="prompt">C:\></span><span id="left"></span><span id="caret" class="caret"></span><span id="right"></span>
+        </div>
       </div>
+    </div>
 
-      <div class="note muted">Tip: for reliable wrapping, select within this single paragraph. Selecting across separate elements can fail (that’s a browser constraint, not weakness).</div>
+    <div class="status">
+      <div class="badgel"><span class="lamp"></span> <span>OG Underscore Caret</span></div>
+      <div class="badger">
+        <span id="mode">INS</span>
+        <span class="dim">·</span>
+        <span class="dim">Home / End, ← →, Backspace, Delete, Ins to toggle OVR</span>
+      </div>
     </div>
   </div>
 
-  <div class="hint">Try different “Native selection” themes (top-right). Then release the mouse to convert selection into an animated <mark> highlight.</div>
-
 <script>
 (function(){
-  const text = document.getElementById('text');
-  const fxSel = document.getElementById('fx');
-  const auto = document.getElementById('auto');
-  const btnCommit = document.getElementById('commit');
-  const btnClear = document.getElementById('clear');
-  const selTheme = document.getElementById('selTheme');
+  const screen = document.getElementById('screen');
+  const leftEl  = document.getElementById('left');
+  const rightEl = document.getElementById('right');
+  const caretEl = document.getElementById('caret');
 
-  // Switch native ::selection theme by toggling a class on <body>
-  selTheme.addEventListener('change', ()=>{
-    document.body.className = selTheme.value;
-  });
+  const themeSel = document.getElementById('theme');
+  const blinkRange = document.getElementById('blink');
+  const thickSel = document.getElementById('thick');
+  const clearBtn = document.getElementById('clear');
+  const crt = document.getElementById('crt');
+  const scan = document.getElementById('scan');
+  const vig  = document.getElementById('vig');
+  const modeLabel = document.getElementById('mode');
 
-  // Wrap current selection in <mark class="hl fx-...">
-  function commitSelection(){
-    const s = window.getSelection();
-    if(!s || s.isCollapsed) return;
-    const r = s.getRangeAt(0);
+  // Editable buffer (single line; prompt is separate)
+  let buf = [];
+  let pos = 0;
+  let overwrite = false;
 
-    // Ensure selection is inside our paragraph for clean surroundContents
-    if(!text.contains(r.commonAncestorContainer)){
-      console.warn('Select inside the demo paragraph for best results.');
-      return;
-    }
-
-    const mark = document.createElement('mark');
-    mark.className = `hl ${fxSel.value}`;
-    mark.classList.add('anim'); // some effects key off this
-    mark.style.setProperty('-webkit-box-decoration-break','clone');
-    mark.style.setProperty('box-decoration-break','clone');
-
-    try{
-      r.surroundContents(mark);
-    }catch(e){
-      // Fallback: only wrap if the selection is within a single text node
-      const contents = r.cloneContents();
-      // Abort if contains element nodes (complex selection)
-      if([...contents.childNodes].some(n=>n.nodeType!==Node.TEXT_NODE)){
-        console.warn('Please select within one contiguous run of text.');
-        return;
-      }
-      const span = document.createElement('mark');
-      span.className = mark.className;
-      span.classList.add('anim');
-      span.appendChild(contents);
-      r.deleteContents();
-      r.insertNode(span);
-    }
-    // Clear native selection highlight
-    s.removeAllRanges();
+  function render(){
+    const l = buf.slice(0,pos).join('');
+    const r = buf.slice(pos).join('');
+    leftEl.textContent  = l;
+    rightEl.textContent = r;
+    document.body.classList.toggle('ovr', overwrite);
+    modeLabel.textContent = overwrite ? 'OVR' : 'INS';
   }
 
-  // Auto-commit on mouseup inside the paragraph
-  text.addEventListener('mouseup', ()=>{
-    if(auto.checked) commitSelection();
+  // Focus management
+  screen.addEventListener('mousedown', (e)=>{ e.preventDefault(); screen.focus(); });
+
+  // Theme, blink, thickness
+  themeSel.addEventListener('change', ()=>{
+    document.body.classList.remove('theme-green','theme-amber','theme-ice','theme-dirty');
+    document.body.classList.add(themeSel.value);
+  });
+  blinkRange.addEventListener('input', ()=>{
+    document.documentElement.style.setProperty('--blink', blinkRange.value+'ms');
+  });
+  thickSel.addEventListener('change', ()=>{
+    document.documentElement.style.setProperty('--thick', thickSel.value);
   });
 
-  btnCommit.addEventListener('click', commitSelection);
+  scan.addEventListener('change', ()=> crt.classList.toggle('scanlines', scan.checked));
+  vig.addEventListener('change',  ()=> crt.classList.toggle('vignette',  vig.checked));
 
-  // Clear all custom marks (unwrap)
-  btnClear.addEventListener('click', ()=>{
-    const marks = text.querySelectorAll('mark.hl');
-    marks.forEach(m=>{
-      const parent = m.parentNode;
-      while(m.firstChild) parent.insertBefore(m.firstChild, m);
-      parent.removeChild(m);
-      parent.normalize(); // merge adjacent text nodes
-    });
+  clearBtn.addEventListener('click', ()=>{
+    buf = []; pos = 0; render();
   });
 
+  // Typing logic
+  function printable(e){
+    return e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+  }
+
+  screen.addEventListener('keydown', (e)=>{
+    // Special keys
+    if(e.key === 'Insert'){ overwrite = !overwrite; render(); e.preventDefault(); return; }
+    if(e.key === 'Backspace'){ if(pos>0){ buf.splice(pos-1,1); pos--; render(); } e.preventDefault(); return; }
+    if(e.key === 'Delete'){ if(pos<buf.length){ buf.splice(pos,1); render(); } e.preventDefault(); return; }
+    if(e.key === 'ArrowLeft'){ if(pos>0){ pos--; render(); } e.preventDefault(); return; }
+    if(e.key === 'ArrowRight'){ if(pos<buf.length){ pos++; render(); } e.preventDefault(); return; }
+    if(e.key === 'Home'){ pos = 0; render(); e.preventDefault(); return; }
+    if(e.key === 'End'){ pos = buf.length; render(); e.preventDefault(); return; }
+    if(e.key === 'Enter'){ // for the sandbox we’ll just flash the caret
+      caretEl.style.animation = 'none';
+      void caretEl.offsetWidth; // reflow to restart
+      caretEl.style.animation = '';
+      e.preventDefault(); return;
+    }
+    if(e.ctrlKey && (e.key==='l' || e.key==='L')){ buf=[]; pos=0; render(); e.preventDefault(); return; }
+
+    // Printable characters
+    if(printable(e)){
+      if(overwrite && pos < buf.length){
+        buf[pos] = e.key;
+      }else{
+        buf.splice(pos, 0, e.key);
+      }
+      pos++;
+      render();
+      e.preventDefault();
+    }
+  });
+
+  // Boot
+  render();
+  screen.focus();
 })();
 </script>
 </body>
