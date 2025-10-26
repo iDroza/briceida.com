@@ -1,252 +1,67 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>OG Underscore Caret — Terminal Sandbox</title>
-<style>
-  :root{
-    --bg:#000000; --fg:#b7ffb7; --accent:#00ff55;
-    --glow:rgba(0,255,128,.28); --caret:#b7ffb7;
-    --border:#1b1b1b;
-    --blink:0.9s;
-    --thick:2px;            /* default underline thickness */
-  }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>I love you Briceida.</title>
+  <meta name="description" content="A simple billboard of love." />
+  <style>
+    :root {
+      --accent: #FC0FC0;  /* Pink */
+      --white: #FFFFFF;
+      --bg: #000000;
+      --muted: #444444;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--white);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+                   "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 700;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .line {
+      font-size: clamp(28px, 6vw, 56px);
+      line-height: 1.1;
+      letter-spacing: 0.2px;
+      margin: 0;
+    }
+    .accent {
+      color: var(--accent);
+    }
 
-  html,body{
-    height:100%; margin:0; background:#000; color:var(--fg);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    -webkit-font-smoothing:antialiased;
-  }
-
-  .frame{
-    min-height:100%;
-    display:grid; grid-template-rows:auto 1fr auto; gap:8px;
-    padding:18px; box-sizing:border-box;
-  }
-
-  .toolbar{
-    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
-    background:#0a0a0a; border:1px solid var(--border); border-radius:10px;
-    padding:8px 10px;
-  }
-  .toolbar label{ font-size:.85rem; color:#bcbcbc; font-weight:700; margin-right:6px; }
-  .toolbar select,.toolbar input[type="range"],.toolbar button{
-    background:#111; color:#e0e0e0; border:1px solid #2a2a2a; border-radius:8px; padding:6px 10px; font-weight:700;
-    outline:none;
-  }
-  .toolbar .toggle{
-    display:inline-flex; gap:6px; align-items:center; font-weight:700; color:#bcbcbc;
-  }
-
-  .crt{
-    position:relative; overflow:hidden;
-    border:1px solid var(--border); border-radius:14px;
-    background: radial-gradient(100% 140% at 50% 50%, #050505 0%, #000 70%);
-    box-shadow:0 0 40px rgba(0,0,0,.6), inset 0 0 60px rgba(0,0,0,.6);
-  }
-  .scanlines::after{
-    content:""; position:absolute; inset:0;
-    background: repeating-linear-gradient(180deg, rgba(255,255,255,0.05) 0 1px, rgba(0,0,0,0) 1px 3px);
-    pointer-events:none; mix-blend-mode:overlay; opacity:.12;
-  }
-  .vignette::before{
-    content:""; position:absolute; inset:-6%;
-    background: radial-gradient(70% 70% at 50% 50%, rgba(0,0,0,0) 50%, rgba(0,0,0,.5) 100%);
-    pointer-events:none;
-  }
-
-  .screen{
-    position:relative; padding:26px; min-height:58vh; box-sizing:border-box;
-    font-size:clamp(14px, 2.2vw, 22px); line-height:1.35; letter-spacing:.2px;
-    text-shadow: 0 0 8px var(--glow), 0 0 18px var(--glow);
-    cursor:text;
-  }
-
-  .line{ white-space:pre; word-break:break-word; }
-
-  .prompt{ color:var(--accent); }
-
-  /* OG underscore caret */
-  .caret{
-    display:inline-block;
-    width:0.7em; height:var(--thick);
-    transform: translateY(.32em);
-    background:var(--caret);
-    vertical-align:baseline;
-    animation: blink var(--blink) steps(1) infinite;
-  }
-  @keyframes blink{ 50%{ opacity:0 } }
-
-  /* overwrite guide (thin bar above text when OVR) */
-  .ovr .caret{
-    box-shadow: 0 -1.05em 0 -0.95em var(--caret); /* tiny top rule to hint OVR */
-  }
-
-  /* THEMES */
-  .theme-green { --fg:#b7ffb7; --caret:#b7ffb7; --accent:#8aff8a; --glow:rgba(0,255,128,.25); }
-  .theme-amber { --fg:#ffd59a; --caret:#ffd59a; --accent:#ffc470; --glow:rgba(255,170,64,.25); }
-  .theme-ice   { --fg:#aee9ff; --caret:#aee9ff; --accent:#6ad0ff; --glow:rgba(120,210,255,.25); }
-  .theme-dirty { --fg:#e7e7e7; --caret:#e7e7e7; --accent:#f1f1f1; --glow:rgba(255,255,255,.18); filter:grayscale(.1) contrast(1.05) brightness(.9); }
-
-  .status{
-    display:flex; gap:16px; align-items:center; justify-content:space-between;
-    color:#9c9c9c; font-weight:800; padding:8px 2px;
-  }
-  .badgel, .badger{
-    display:inline-flex; align-items:center; gap:8px; font-weight:800;
-  }
-  .lamp{
-    width:9px; height:9px; border-radius:50%;
-    box-shadow:0 0 8px var(--accent);
-    background:var(--accent);
-  }
-  .dim{ opacity:.55 }
-</style>
+    /* Subtle footer link signature */
+    .footer-link {
+      position: fixed;
+      bottom: 16px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.3s ease, opacity 0.3s ease;
+      opacity: 0.6;
+      letter-spacing: 0.5px;
+    }
+    .footer-link:hover {
+      color: var(--white);
+      opacity: 1;
+    }
+  </style>
 </head>
-<body class="theme-green">
-  <div class="frame">
-    <div class="toolbar">
-      <label>Theme
-        <select id="theme">
-          <option value="theme-green">Green Phosphor</option>
-          <option value="theme-amber">Amber Phosphor</option>
-          <option value="theme-ice">Ice (DOS/CGA cyan)</option>
-          <option value="theme-dirty">Dirty CRT (mono)</option>
-        </select>
-      </label>
+<body>
+  <main class="wrap" role="main" aria-label="Love message">
+    <h1 class="line">
+      <span>I love you </span><span class="accent">Briceida</span><span>.</span>
+    </h1>
+  </main>
 
-      <label>Blink (ms)
-        <input id="blink" type="range" min="200" max="1600" step="50" value="900">
-      </label>
-
-      <label>Thickness
-        <select id="thick">
-          <option value="1px">Hairline</option>
-          <option value="2px" selected>Classic</option>
-          <option value="3px">Bold</option>
-          <option value="4px">Heavy</option>
-        </select>
-      </label>
-
-      <label class="toggle">
-        <input id="scan" type="checkbox" checked> Scanlines
-      </label>
-      <label class="toggle">
-        <input id="vig" type="checkbox" checked> Vignette
-      </label>
-      <button id="clear">CLS</button>
-    </div>
-
-    <div class="crt scanlines vignette" id="crt">
-      <div class="screen" id="screen" tabindex="0" aria-label="Terminal sandbox. Click to focus and type.">
-        <div class="line">
-          <span class="prompt">C:\></span><span id="left"></span><span id="caret" class="caret"></span><span id="right"></span>
-        </div>
-      </div>
-    </div>
-
-    <div class="status">
-      <div class="badgel"><span class="lamp"></span> <span>OG Underscore Caret</span></div>
-      <div class="badger">
-        <span id="mode">INS</span>
-        <span class="dim">·</span>
-        <span class="dim">Home / End, ← →, Backspace, Delete, Ins to toggle OVR</span>
-      </div>
-    </div>
-  </div>
-
-<script>
-(function(){
-  const screen = document.getElementById('screen');
-  const leftEl  = document.getElementById('left');
-  const rightEl = document.getElementById('right');
-  const caretEl = document.getElementById('caret');
-
-  const themeSel = document.getElementById('theme');
-  const blinkRange = document.getElementById('blink');
-  const thickSel = document.getElementById('thick');
-  const clearBtn = document.getElementById('clear');
-  const crt = document.getElementById('crt');
-  const scan = document.getElementById('scan');
-  const vig  = document.getElementById('vig');
-  const modeLabel = document.getElementById('mode');
-
-  // Editable buffer (single line; prompt is separate)
-  let buf = [];
-  let pos = 0;
-  let overwrite = false;
-
-  function render(){
-    const l = buf.slice(0,pos).join('');
-    const r = buf.slice(pos).join('');
-    leftEl.textContent  = l;
-    rightEl.textContent = r;
-    document.body.classList.toggle('ovr', overwrite);
-    modeLabel.textContent = overwrite ? 'OVR' : 'INS';
-  }
-
-  // Focus management
-  screen.addEventListener('mousedown', (e)=>{ e.preventDefault(); screen.focus(); });
-
-  // Theme, blink, thickness
-  themeSel.addEventListener('change', ()=>{
-    document.body.classList.remove('theme-green','theme-amber','theme-ice','theme-dirty');
-    document.body.classList.add(themeSel.value);
-  });
-  blinkRange.addEventListener('input', ()=>{
-    document.documentElement.style.setProperty('--blink', blinkRange.value+'ms');
-  });
-  thickSel.addEventListener('change', ()=>{
-    document.documentElement.style.setProperty('--thick', thickSel.value);
-  });
-
-  scan.addEventListener('change', ()=> crt.classList.toggle('scanlines', scan.checked));
-  vig.addEventListener('change',  ()=> crt.classList.toggle('vignette',  vig.checked));
-
-  clearBtn.addEventListener('click', ()=>{
-    buf = []; pos = 0; render();
-  });
-
-  // Typing logic
-  function printable(e){
-    return e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-  }
-
-  screen.addEventListener('keydown', (e)=>{
-    // Special keys
-    if(e.key === 'Insert'){ overwrite = !overwrite; render(); e.preventDefault(); return; }
-    if(e.key === 'Backspace'){ if(pos>0){ buf.splice(pos-1,1); pos--; render(); } e.preventDefault(); return; }
-    if(e.key === 'Delete'){ if(pos<buf.length){ buf.splice(pos,1); render(); } e.preventDefault(); return; }
-    if(e.key === 'ArrowLeft'){ if(pos>0){ pos--; render(); } e.preventDefault(); return; }
-    if(e.key === 'ArrowRight'){ if(pos<buf.length){ pos++; render(); } e.preventDefault(); return; }
-    if(e.key === 'Home'){ pos = 0; render(); e.preventDefault(); return; }
-    if(e.key === 'End'){ pos = buf.length; render(); e.preventDefault(); return; }
-    if(e.key === 'Enter'){ // for the sandbox we’ll just flash the caret
-      caretEl.style.animation = 'none';
-      void caretEl.offsetWidth; // reflow to restart
-      caretEl.style.animation = '';
-      e.preventDefault(); return;
-    }
-    if(e.ctrlKey && (e.key==='l' || e.key==='L')){ buf=[]; pos=0; render(); e.preventDefault(); return; }
-
-    // Printable characters
-    if(printable(e)){
-      if(overwrite && pos < buf.length){
-        buf[pos] = e.key;
-      }else{
-        buf.splice(pos, 0, e.key);
-      }
-      pos++;
-      render();
-      e.preventDefault();
-    }
-  });
-
-  // Boot
-  render();
-  screen.focus();
-})();
-</script>
+  <a href="https://drozq.com" class="footer-link" target="_blank" rel="noopener noreferrer">drozq.com</a>
 </body>
 </html>
