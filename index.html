@@ -3,191 +3,198 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Footer “CHANGE” Cursor-Follow</title>
+<title>Accenture-style Footer: 9× “CHANGE” @ 90° with Parallax</title>
 <style>
   :root{
-    --bg: #0b0b0b;
-    --fg: #eaeaea;
-    --accent: #8a2be2;
+    --bg: #0b0b0f;
+    --fg: #e8e8ee;
+    --accent: #9b59ff;
   }
 
-  /* Demo page scaffold (ignore in prod) */
-  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji"; }
-  .content { min-height: 70vh; display: grid; place-items: center; text-align: center; padding: 4rem 1rem; }
-  .content h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); margin: 0 0 0.5rem; }
-  .content p { max-width: 60ch; opacity: .85; }
+  /* Demo scaffold */
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial;}
+  main{min-height:70vh;display:grid;place-items:center;text-align:center;padding:4rem 1rem;}
+  h1{margin:0 0 .5rem;font-weight:800;letter-spacing:-.02em}
 
   /* Footer container */
-  .footer {
-    position: relative;
-    overflow: clip;
+  .footer{
+    position:relative;
+    overflow:hidden;
+    isolation:isolate;
+    border-top:1px solid rgba(255,255,255,.08);
+    padding:clamp(56px,10vw,120px) 0;
     background:
-      radial-gradient(1200px 1200px at var(--mx,50%) var(--my,50%),
-        rgba(138,43,226,0.08), transparent 60%)
-      ,#0b0b0b;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    padding: clamp(48px, 8vw, 96px) 16px;
-    isolation: isolate; /* allow mix-blend to pop */
+      radial-gradient(800px 400px at var(--mx,50%) var(--my,50%),
+        rgba(155,89,255,.10), transparent 60%) ,
+      #0b0b0f;
   }
 
-  .footer-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 2;
-    display: grid;
-    gap: 1.25rem;
+  .footer-inner{
+    max-width:1200px;margin:0 auto;padding:0 20px;position:relative;z-index:2;
+    display:grid;gap:16px;
+  }
+  .footer-links{display:flex;flex-wrap:wrap;gap:12px;opacity:.85}
+  .footer-links a{color:var(--fg);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.18)}
+  .footer-links a:hover{opacity:1}
+
+  /* MOVING STACK — each row is a “block”, all rotated 90° */
+  .change-stack{
+    position:absolute;inset:0;z-index:1;pointer-events:none;
+    display:block;
   }
 
-  .cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: clamp(16px, 3vw, 32px);
-  }
-  .cols > div { opacity: .9; }
-  .cols a { color: var(--fg); opacity: .9; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.15); }
-  .cols a:hover { opacity: 1; }
-
-  /* The moving word */
-  .change-wrap {
-    position: absolute;
-    inset: 0;
-    pointer-events: none; /* allows clicks through */
-    z-index: 1;
+  /* shared text look */
+  .row{
+    position:absolute;left:50%;top:50%;
+    transform-origin:center;
+    font-weight:900;letter-spacing:-.04em;line-height:.85;
+    white-space:nowrap;user-select:none;
+    mix-blend-mode:difference; /* reads on light/dark */
+    color:transparent;
+    -webkit-text-stroke:1px rgba(255,255,255,.18);
+            text-stroke:1px rgba(255,255,255,.18);
+    text-shadow:0 0 24px rgba(155,89,255,.12), 0 2px 8px rgba(0,0,0,.35);
   }
 
-  .change {
-    position: absolute;
-    left: 0; top: 0;
-    transform: translate3d(var(--cx, 50%), var(--cy, 50%), 0);
-    will-change: transform;
-    white-space: nowrap;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    /* Size scales with viewport but clamps for sanity */
-    font-size: clamp(64px, 22vw, 260px);
-    line-height: 0.8;
-    /* Dual-layer text for “embossed” effect */
-    color: transparent;
-    -webkit-text-stroke: 1px rgba(255,255,255,0.20);
-    text-stroke: 1px rgba(255,255,255,0.20);
-    text-shadow:
-      0 0 30px rgba(138,43,226,0.15),
-      0 0 6px rgba(255,255,255,0.05);
-    mix-blend-mode: difference; /* flips against bg to feel interactive */
-    user-select: none;
+  /* The “full word” hero layer is bigger and clearer */
+  .row.hero{
+    font-size:clamp(72px, 22vw, 280px);
+    opacity:.35;
   }
 
-  /* A subtle gradient fill that appears via background-clip */
-  .change::before{
-    content: attr(data-text);
-    position: absolute; inset: 0;
-    background: linear-gradient(90deg, #fff, #bbb 30%, #fff 60%);
-    background-size: 200% 100%;
-    background-position: var(--gx, 50%) 50%;
-    -webkit-background-clip: text;
-            background-clip: text;
-    color: transparent;
-    opacity: .18;
+  /* The echoes vary in size/opacity for depth */
+  .row.e1{font-size:clamp(60px, 19vw, 240px);opacity:.20;filter:blur(.2px)}
+  .row.e2{font-size:clamp(56px, 18vw, 220px);opacity:.18;filter:blur(.2px)}
+  .row.e3{font-size:clamp(52px, 17vw, 210px);opacity:.16}
+  .row.e4{font-size:clamp(48px, 16vw, 200px);opacity:.15}
+  .row.e5{font-size:clamp(46px, 15vw, 190px);opacity:.14}
+  .row.e6{font-size:clamp(44px, 14vw, 180px);opacity:.13}
+  .row.e7{font-size:clamp(42px, 13vw, 170px);opacity:.12}
+  .row.e8{font-size:clamp(40px, 12vw, 160px);opacity:.11}
+
+  /* Fake fill sheen via ::before */
+  .row::before{
+    content:attr(data-text);
+    position:absolute;inset:0;
+    background:linear-gradient(90deg,#fff,#cfcfcf 35%,#fff 70%);
+    background-size:200% 100%;
+    background-position:var(--gx,50%) 50%;
+    -webkit-background-clip:text;background-clip:text;
+    color:transparent;opacity:.18;
   }
 
-  /* Respect reduced motion: freeze the word in the center */
-  @media (prefers-reduced-motion: reduce) {
-    .change { transform: translate3d(50%, 50%, 0); }
-    .footer { background: #0b0b0b; }
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    .footer{background:#0b0b0f}
   }
 </style>
 </head>
 <body>
 
-  <main class="content">
-    <div>
-      <h1>Cursor-Reactive Footer Word</h1>
-      <p>Scroll down and move your mouse over the footer. The word smoothly chases the cursor (with easing), blends with the background, and stays out of the way of links.</p>
-    </div>
-  </main>
+<main>
+  <div>
+    <h1>9-Layer “CHANGE” Footer (rotated 90°)</h1>
+    <p>Move your mouse over the footer. Each layer drifts a different amount. The main word spans fully; echoes add depth.</p>
+  </div>
+</main>
 
-  <footer class="footer" id="footer">
-    <div class="footer-inner">
-      <div class="cols">
-        <div>
-          <h3>VIRELLO Brokerage</h3>
-          <p>Seller-side systems. One product, one channel, one avatar. Relentless execution.</p>
-        </div>
-        <div>
-          <p>Links:</p>
-          <p><a href="#">Home Selling Roadmap</a> · <a href="#">Case Studies</a> · <a href="#">Contact</a></p>
-        </div>
-      </div>
-      <p style="opacity:.6;margin:1rem 0 0;">© <span id="y"></span> VIRELLO. All upside, no excuses.</p>
+<footer class="footer" id="footer">
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="#">About</a>
+      <a href="#">Capabilities</a>
+      <a href="#">Careers</a>
+      <a href="#">Contact</a>
     </div>
+    <small style="opacity:.6">© <span id="year"></span> VIRELLO — Discipline compounds.</small>
+  </div>
 
-    <!-- Moving word layer -->
-    <div class="change-wrap" aria-hidden="true">
-      <div class="change" id="change" data-text="CHANGE">CHANGE</div>
-    </div>
-  </footer>
+  <!-- Cursor-reactive stack -->
+  <div class="change-stack" aria-hidden="true" id="stack">
+    <!-- One hero + 8 echoes; each data-speed controls parallax amount -->
+    <div class="row hero" data-text="CHANGE" data-speed="0.42"></div>
+    <div class="row e1"   data-text="CHANGE" data-speed="0.35"></div>
+    <div class="row e2"   data-text="CHANGE" data-speed="0.28"></div>
+    <div class="row e3"   data-text="CHANGE" data-speed="0.22"></div>
+    <div class="row e4"   data-text="CHANGE" data-speed="0.17"></div>
+    <div class="row e5"   data-text="CHANGE" data-speed="0.13"></div>
+    <div class="row e6"   data-text="CHANGE" data-speed="0.10"></div>
+    <div class="row e7"   data-text="CHANGE" data-speed="0.07"></div>
+    <div class="row e8"   data-text="CHANGE" data-speed="0.05"></div>
+  </div>
+</footer>
 
 <script>
 (function(){
   const footer = document.getElementById('footer');
-  const word   = document.getElementById('change');
-  const yearEl = document.getElementById('y');
+  const stack  = document.getElementById('stack');
+  const rows   = Array.from(stack.querySelectorAll('.row'));
+  const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  // Target (mouse) and current (rendered) positions in pixels, relative to footer
-  let targetX = 0, targetY = 0;
-  let curX = 0, curY = 0;
-
-  // Easing factor (0..1). Higher = snappier.
+  // Cursor targets (pixels relative to footer)
+  let tx = 0, ty = 0;   // targets
+  let cx = 0, cy = 0;   // current (lerped)
   const ease = 0.12;
 
-  // Update target on mouse move
-  footer.addEventListener('mousemove', (e) => {
-    const rect = footer.getBoundingClientRect();
-    targetX = e.clientX - rect.left;
-    targetY = e.clientY - rect.top;
+  function onMove(clientX, clientY){
+    const r = footer.getBoundingClientRect();
+    tx = clientX - r.left;
+    ty = clientY - r.top;
 
-    // Also drive background spotlight + text gradient
-    const mx = (targetX / rect.width) * 100;
-    const my = (targetY / rect.height) * 100;
+    // spotlight + sheen direction
+    const mx = (tx / r.width)  * 100;
+    const my = (ty / r.height) * 100;
     footer.style.setProperty('--mx', mx + '%');
     footer.style.setProperty('--my', my + '%');
-    word.style.setProperty('--gx', mx + '%');
-  }, { passive: true });
+    rows.forEach(el => el.style.setProperty('--gx', mx + '%'));
+  }
 
-  // On touch, center it (or you could follow touch)
-  footer.addEventListener('touchstart', (e) => {
-    const rect = footer.getBoundingClientRect();
-    const t = e.touches[0];
-    targetX = (t.clientX - rect.left);
-    targetY = (t.clientY - rect.top);
-  }, { passive: true });
+  footer.addEventListener('mousemove', e => onMove(e.clientX, e.clientY), {passive:true});
+  footer.addEventListener('touchstart', e => {
+    const t = e.touches[0]; if (t) onMove(t.clientX, t.clientY);
+  }, {passive:true});
+  footer.addEventListener('touchmove', e => {
+    const t = e.touches[0]; if (t) onMove(t.clientX, t.clientY);
+  }, {passive:true});
 
+  // Animation loop
   function tick(){
-    // Lerp current toward target
-    curX += (targetX - curX) * ease;
-    curY += (targetY - curY) * ease;
+    // Lerp toward mouse
+    cx += (tx - cx) * ease;
+    cy += (ty - cy) * ease;
 
-    // Convert to translate percentages so it scales with viewport.
-    const rect = footer.getBoundingClientRect();
-    const px = (curX / rect.width)  * 100;
-    const py = (curY / rect.height) * 100;
+    const r = footer.getBoundingClientRect();
+    // Normalize to [-1, 1]
+    const nx = (cx / r.width)  * 2 - 1;
+    const ny = (cy / r.height) * 2 - 1;
 
-    word.style.setProperty('--cx', px + '%');
-    word.style.setProperty('--cy', py + '%');
+    // Base travel budget in px; tweak to taste
+    const RANGE_X = r.width  * 0.10;  // horizontal drift space
+    const RANGE_Y = r.height * 0.10;  // vertical drift space
+
+    rows.forEach((el, i) => {
+      const speed = parseFloat(el.dataset.speed) || 0.2;
+
+      /* Rotate the text -90° so “CHANGE” runs vertically,
+         then move ALONG A SINGLE AXIS (horizontal) so it feels like
+         vertical motion after rotation (Accenture vibe at 90°).        */
+      const txPx = nx * RANGE_X * speed;   // parallax amount
+      const tyPx = ny * RANGE_Y * speed * 0.35; // slight secondary drift
+
+      el.style.transform =
+        `translate(-50%, -50%) rotate(-90deg) translate(${txPx}px, ${tyPx}px)`;
+      // Note: translate before rotate would rotate motion; we rotate first,
+      // then translate in the rotated space to preserve the “90°” look.
+    });
 
     requestAnimationFrame(tick);
   }
 
-  // Initialize in center
-  const r = footer.getBoundingClientRect();
-  targetX = r.width * 0.5;
-  targetY = r.height * 0.5;
-  curX = targetX;
-  curY = targetY;
+  // Initialize at center
+  const r0 = footer.getBoundingClientRect();
+  tx = r0.width * .5; ty = r0.height * .5; cx = tx; cy = ty;
 
-  // Safety: stop anim if user prefers reduced motion
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (!prefersReduced.matches) requestAnimationFrame(tick);
 })();
