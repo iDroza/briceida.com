@@ -1,67 +1,196 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>I love you Briceida.</title>
-  <meta name="description" content="A simple billboard of love." />
-  <style>
-    :root {
-      --accent: #FC0FC0;  /* Pink */
-      --white: #FFFFFF;
-      --bg: #000000;
-      --muted: #444444;
-    }
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: var(--bg);
-      color: var(--white);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-                   "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-weight: 700;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
-    .line {
-      font-size: clamp(28px, 6vw, 56px);
-      line-height: 1.1;
-      letter-spacing: 0.2px;
-      margin: 0;
-    }
-    .accent {
-      color: var(--accent);
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Footer “CHANGE” Cursor-Follow</title>
+<style>
+  :root{
+    --bg: #0b0b0b;
+    --fg: #eaeaea;
+    --accent: #8a2be2;
+  }
 
-    /* Subtle footer link signature */
-    .footer-link {
-      position: fixed;
-      bottom: 16px;
-      font-size: 0.85rem;
-      color: var(--muted);
-      text-decoration: none;
-      transition: color 0.3s ease, opacity 0.3s ease;
-      opacity: 0.6;
-      letter-spacing: 0.5px;
-    }
-    .footer-link:hover {
-      color: var(--white);
-      opacity: 1;
-    }
-  </style>
+  /* Demo page scaffold (ignore in prod) */
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji"; }
+  .content { min-height: 70vh; display: grid; place-items: center; text-align: center; padding: 4rem 1rem; }
+  .content h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); margin: 0 0 0.5rem; }
+  .content p { max-width: 60ch; opacity: .85; }
+
+  /* Footer container */
+  .footer {
+    position: relative;
+    overflow: clip;
+    background:
+      radial-gradient(1200px 1200px at var(--mx,50%) var(--my,50%),
+        rgba(138,43,226,0.08), transparent 60%)
+      ,#0b0b0b;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding: clamp(48px, 8vw, 96px) 16px;
+    isolation: isolate; /* allow mix-blend to pop */
+  }
+
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(16px, 3vw, 32px);
+  }
+  .cols > div { opacity: .9; }
+  .cols a { color: var(--fg); opacity: .9; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.15); }
+  .cols a:hover { opacity: 1; }
+
+  /* The moving word */
+  .change-wrap {
+    position: absolute;
+    inset: 0;
+    pointer-events: none; /* allows clicks through */
+    z-index: 1;
+  }
+
+  .change {
+    position: absolute;
+    left: 0; top: 0;
+    transform: translate3d(var(--cx, 50%), var(--cy, 50%), 0);
+    will-change: transform;
+    white-space: nowrap;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    /* Size scales with viewport but clamps for sanity */
+    font-size: clamp(64px, 22vw, 260px);
+    line-height: 0.8;
+    /* Dual-layer text for “embossed” effect */
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255,255,255,0.20);
+    text-stroke: 1px rgba(255,255,255,0.20);
+    text-shadow:
+      0 0 30px rgba(138,43,226,0.15),
+      0 0 6px rgba(255,255,255,0.05);
+    mix-blend-mode: difference; /* flips against bg to feel interactive */
+    user-select: none;
+  }
+
+  /* A subtle gradient fill that appears via background-clip */
+  .change::before{
+    content: attr(data-text);
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, #fff, #bbb 30%, #fff 60%);
+    background-size: 200% 100%;
+    background-position: var(--gx, 50%) 50%;
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    opacity: .18;
+  }
+
+  /* Respect reduced motion: freeze the word in the center */
+  @media (prefers-reduced-motion: reduce) {
+    .change { transform: translate3d(50%, 50%, 0); }
+    .footer { background: #0b0b0b; }
+  }
+</style>
 </head>
 <body>
-  <main class="wrap" role="main" aria-label="Love message">
-    <h1 class="line">
-      <span>I love you </span><span class="accent">Briceida</span><span>.</span>
-    </h1>
+
+  <main class="content">
+    <div>
+      <h1>Cursor-Reactive Footer Word</h1>
+      <p>Scroll down and move your mouse over the footer. The word smoothly chases the cursor (with easing), blends with the background, and stays out of the way of links.</p>
+    </div>
   </main>
 
-  <a href="https://drozq.com" class="footer-link" target="_blank" rel="noopener noreferrer">drozq.com</a>
+  <footer class="footer" id="footer">
+    <div class="footer-inner">
+      <div class="cols">
+        <div>
+          <h3>VIRELLO Brokerage</h3>
+          <p>Seller-side systems. One product, one channel, one avatar. Relentless execution.</p>
+        </div>
+        <div>
+          <p>Links:</p>
+          <p><a href="#">Home Selling Roadmap</a> · <a href="#">Case Studies</a> · <a href="#">Contact</a></p>
+        </div>
+      </div>
+      <p style="opacity:.6;margin:1rem 0 0;">© <span id="y"></span> VIRELLO. All upside, no excuses.</p>
+    </div>
+
+    <!-- Moving word layer -->
+    <div class="change-wrap" aria-hidden="true">
+      <div class="change" id="change" data-text="CHANGE">CHANGE</div>
+    </div>
+  </footer>
+
+<script>
+(function(){
+  const footer = document.getElementById('footer');
+  const word   = document.getElementById('change');
+  const yearEl = document.getElementById('y');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  // Target (mouse) and current (rendered) positions in pixels, relative to footer
+  let targetX = 0, targetY = 0;
+  let curX = 0, curY = 0;
+
+  // Easing factor (0..1). Higher = snappier.
+  const ease = 0.12;
+
+  // Update target on mouse move
+  footer.addEventListener('mousemove', (e) => {
+    const rect = footer.getBoundingClientRect();
+    targetX = e.clientX - rect.left;
+    targetY = e.clientY - rect.top;
+
+    // Also drive background spotlight + text gradient
+    const mx = (targetX / rect.width) * 100;
+    const my = (targetY / rect.height) * 100;
+    footer.style.setProperty('--mx', mx + '%');
+    footer.style.setProperty('--my', my + '%');
+    word.style.setProperty('--gx', mx + '%');
+  }, { passive: true });
+
+  // On touch, center it (or you could follow touch)
+  footer.addEventListener('touchstart', (e) => {
+    const rect = footer.getBoundingClientRect();
+    const t = e.touches[0];
+    targetX = (t.clientX - rect.left);
+    targetY = (t.clientY - rect.top);
+  }, { passive: true });
+
+  function tick(){
+    // Lerp current toward target
+    curX += (targetX - curX) * ease;
+    curY += (targetY - curY) * ease;
+
+    // Convert to translate percentages so it scales with viewport.
+    const rect = footer.getBoundingClientRect();
+    const px = (curX / rect.width)  * 100;
+    const py = (curY / rect.height) * 100;
+
+    word.style.setProperty('--cx', px + '%');
+    word.style.setProperty('--cy', py + '%');
+
+    requestAnimationFrame(tick);
+  }
+
+  // Initialize in center
+  const r = footer.getBoundingClientRect();
+  targetX = r.width * 0.5;
+  targetY = r.height * 0.5;
+  curX = targetX;
+  curY = targetY;
+
+  // Safety: stop anim if user prefers reduced motion
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (!prefersReduced.matches) requestAnimationFrame(tick);
+})();
+</script>
 </body>
 </html>
