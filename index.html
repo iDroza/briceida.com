@@ -2,109 +2,404 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>I love you Briceida.</title>
-  <meta name="description" content="A simple billboard of love." />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Progress Update</title>
   <style>
-    :root {
-      --purple: #FC0FC0;
-      --white: #FFFFFF;
-      --bg: #000000;
-      --muted: #444444;
+    :root{
+      --bg0:#05040a;
+      --bg1:#0b0712;
+      --gold:#ffef9a;
     }
-
-    html, body {
-      height: 100%;
-      margin: 0;
+    html,body{height:100%; margin:0;}
+    body{
+      background: radial-gradient(1200px 700px at 50% 25%, var(--bg1), var(--bg0));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color: var(--gold);
     }
-
-    body {
-      background: var(--bg);
-      color: var(--white);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-                   "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-weight: 700;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
+    .wrap{ width:min(980px, 92vw); }
+    h1{
+      margin:0 0 10px 0;
+      text-align:center;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.22em;
+      font-size: clamp(18px, 2.4vw, 26px);
+      color: var(--gold);
+      text-shadow: 0 0 16px rgba(255,239,154,.18);
+      user-select:none;
     }
-
-    .line {
-      font-size: clamp(28px, 6vw, 56px);
-      line-height: 1.1;
-      letter-spacing: 0.2px;
-      margin: 0;
+    .frame{
+      border: 1px solid rgba(255,239,154,.18);
+      border-radius: 18px;
+      padding: 14px;
+      background: linear-gradient(180deg, rgba(255,239,154,.05), rgba(0,0,0,.22));
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
     }
-
-    .purple {
-      color: var(--purple);
-    }
-
-    /* Blur + slide-in animation */
-    .blur-word {
-      display: inline-block;
-      filter: blur(10px);
-      opacity: 0;
-      transform: translateY(-50px);
-      animation-name: blurIn;
-      animation-duration: 0.7s;
-      animation-timing-function: ease-out;
-      animation-fill-mode: forwards;
-      will-change: transform, filter, opacity;
-    }
-
-    @keyframes blurIn {
-      0% {
-        filter: blur(10px);
-        opacity: 0;
-        transform: translateY(-50px);
-      }
-      60% {
-        filter: blur(5px);
-        opacity: 0.5;
-        transform: translateY(5px);
-      }
-      100% {
-        filter: blur(0px);
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* Subtle bottom link */
-    .footer-link {
-      position: fixed;
-      bottom: 16px;
-      font-size: 0.85rem;
-      color: var(--muted);
-      text-decoration: none;
-      transition: color 0.3s ease, opacity 0.3s ease;
-      opacity: 0.6;
-      letter-spacing: 0.5px;
-    }
-    .footer-link:hover {
-      color: var(--white);
-      opacity: 1;
+    canvas{
+      display:block;
+      border-radius: 14px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      /* IMPORTANT: we will set width/height in JS to an integer scale */
+      width: 320px;
+      height: 180px;
     }
   </style>
 </head>
 <body>
-  <main>
-    <h1 class="line">
-      <span class="blur-word" style="animation-delay: 0s;">I</span>&nbsp;
-      <span class="blur-word" style="animation-delay: 0.12s;">love</span>&nbsp;
-      <span class="blur-word" style="animation-delay: 0.24s;">you</span>&nbsp;
-      <span class="blur-word purple" style="animation-delay: 0.36s;">Briceida</span><span class="blur-word" style="animation-delay: 0.48s;">.</span>
-    </h1>
-  </main>
+  <div class="wrap">
+    <h1>Progress Update</h1>
+    <div class="frame">
+      <canvas id="c"></canvas>
+    </div>
+  </div>
 
-  <a href="https://drozq.com" class="footer-link" target="_blank" rel="noopener noreferrer">
-    drozq.com
-  </a>
+<script>
+(() => {
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  ctx.imageSmoothingEnabled = false;
+
+  // Internal pixel resolution (keep modest; scale up sharply via integer scaling)
+  const W = 320;
+  const H = 180;
+  canvas.width = W;
+  canvas.height = H;
+
+  // --- integer scaling (THIS is what makes it sharp) ---
+  function fitIntegerScale(){
+    const frame = canvas.parentElement;
+    const maxW = Math.floor(frame.clientWidth);
+    // Choose an integer scale that fits
+    const scale = Math.max(1, Math.floor(maxW / W));
+    canvas.style.width  = (W * scale) + "px";
+    canvas.style.height = (H * scale) + "px";
+  }
+  window.addEventListener("resize", fitIntegerScale, { passive: true });
+  fitIntegerScale();
+
+  // Slope line
+  const A = { x: 44,  y: 152 };
+  const B = { x: 292, y: 58  };
+  const dx = B.x - A.x;
+  const dy = B.y - A.y;
+  const len = Math.hypot(dx, dy);
+  const tnx = dx / len; // up-slope tangent
+  const tny = dy / len;
+  const dnx = -tnx;     // down-slope (treadmill direction)
+  const dny = -tny;
+
+  const m = dy / dx;
+  const yAtX = (x) => m * (x - A.x) + A.y;
+
+  // Palette (strict yellow/orange + deep shadows)
+  const PAL = {
+    sky0: [5,4,10],
+    sky1: [12,8,18],
+    glow: [255,210,106],
+    rock0:[255,155,48],
+    rock1:[220,115,26],
+    rock2:[170,78,18],
+    edge: [255,239,154],
+    ink:  [18,10,16] // outline shadow
+  };
+
+  // Tiny hash for texture (stable)
+  function hash2(x, y){
+    let n = (x * 374761393) ^ (y * 668265263);
+    n = (n ^ (n >>> 13)) * 1274126177;
+    return (n ^ (n >>> 16)) >>> 0;
+  }
+
+  // Build a rock tile (macro texture), then scroll it
+  const tile = document.createElement("canvas");
+  const TW = 64, TH = 64;
+  tile.width = TW; tile.height = TH;
+  const tctx = tile.getContext("2d", { alpha: true });
+  tctx.imageSmoothingEnabled = false;
+
+  function put(tctx, x,y, rgb){
+    tctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    tctx.fillRect(x,y,1,1);
+  }
+
+  // Create a deliberate pixel pattern: bands + grit (NOT static)
+  for(let y=0;y<TH;y++){
+    for(let x=0;x<TW;x++){
+      const h = hash2(x,y) & 255;
+      const band = ((y + Math.floor(x*0.35)) % 14);
+      // Base
+      let c = PAL.rock1;
+      // Bands (larger structure)
+      if(band === 0 || band === 1) c = PAL.rock0;
+      if(band === 7 || band === 8) c = PAL.rock2;
+      // Grit accents
+      if(h < 12) c = PAL.rock2;
+      if(h > 244) c = PAL.rock0;
+      put(tctx, x,y, c);
+    }
+  }
+  const rockPattern = ctx.createPattern(tile, "repeat");
+
+  // Boulder fixed position
+  const boulder = { x: 208, y: 96, r: 13 };
+
+  // Boulder rugged edge profile
+  const rough = Array.from({length:32}, (_,i)=>{
+    return Math.sin(i*2.0)*0.9 + Math.sin(i*0.65)*0.6;
+  });
+
+  function drawBoulder(x,y,r,spin){
+    // Outline first (crisp)
+    for(let py=-r-2; py<=r+2; py++){
+      for(let px=-r-2; px<=r+2; px++){
+        const d = Math.hypot(px,py);
+        const ang = Math.atan2(py,px) + spin;
+        const idx = (((ang + Math.PI) / (2*Math.PI)) * rough.length) | 0;
+        const edge = r + rough[(idx + rough.length) % rough.length];
+
+        if(d <= edge && d >= edge-1.2){
+          ctx.fillStyle = `rgb(${PAL.ink[0]},${PAL.ink[1]},${PAL.ink[2]})`;
+          ctx.fillRect((x+px)|0, (y+py)|0, 1, 1);
+        }
+      }
+    }
+    // Fill
+    for(let py=-r-2; py<=r+2; py++){
+      for(let px=-r-2; px<=r+2; px++){
+        const d = Math.hypot(px,py);
+        const ang = Math.atan2(py,px) + spin;
+        const idx = (((ang + Math.PI) / (2*Math.PI)) * rough.length) | 0;
+        const edge = r + rough[(idx + rough.length) % rough.length];
+
+        if(d <= edge-0.6){
+          // Lighting top-left
+          const lit = (-(px) + -(py)) * 0.05;
+          const base = Math.max(0.1, Math.min(0.95, 0.55 + lit));
+          const c = (base > 0.60) ? PAL.glow : (base > 0.45 ? PAL.rock0 : PAL.rock2);
+          ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+          ctx.fillRect((x+px)|0, (y+py)|0, 1, 1);
+        }
+      }
+    }
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    for(let i=0;i<r*2;i++){
+      ctx.fillRect((x-r+i)|0, (y+r+2)|0, 1, 1);
+    }
+  }
+
+  // --- Sprite animation (4 frames) ---
+  // '.' transparent, 'O' outline, 'S' skin/light, 'D' shade, 'F' fist highlight
+  const SPR = [
+    [
+      "....OOO.........",
+      "...OSSSO........",
+      "...OSSSSO.......",
+      "...OSSDSSO......",
+      "....OSSSO.......",
+      "..OOSSSSSOO.....",
+      ".OSSSSSSSSSO....",
+      ".OSSSSDSSSSO....",
+      "..OSSSSSSSO.....",
+      "...OSSSSSO..FFFF",
+      "....OSSSO..FSSSF",
+      "....OSSSO..FSSSF",
+      "....OSSSO...FFF.",
+      "...OOSSSO........",
+      "..O.SSS.O.......",
+      "..O.SS..O.......",
+      "...O....O.......",
+      "...O....O.......",
+      "..O......O......",
+      ".O........O....."
+    ],
+    [
+      "....OOO.........",
+      "...OSSSO........",
+      "...OSSSSO.......",
+      "...OSSDSSO......",
+      "....OSSSO.......",
+      "..OOSSSSSOO.....",
+      ".OSSSSSSSSSO....",
+      ".OSSSSDSSSSO....",
+      "..OSSSSSSSO.....",
+      "...OSSSSSO..FFFF",
+      "....OSSSO..FSSSF",
+      "....OSSSO..FSSSF",
+      "....OSSSO...FFF.",
+      "...OOSSSO........",
+      "..O.SSS.O.......",
+      "..O..SS.O.......",
+      "...O....O.......",
+      "..O.....O.......",
+      ".O.......O......",
+      "O.........O....."
+    ],
+    [
+      "....OOO.........",
+      "...OSSSO........",
+      "...OSSSSO.......",
+      "...OSSDSSO......",
+      "....OSSSO.......",
+      "..OOSSSSSOO.....",
+      ".OSSSSSSSSSO....",
+      ".OSSSSDSSSSO....",
+      "..OSSSSSSSO.....",
+      "...OSSSSSO..FFFF",
+      "....OSSSO..FSSSF",
+      "....OSSSO..FSSSF",
+      "....OSSSO...FFF.",
+      "...OOSSSO........",
+      "..O.SSS.O.......",
+      "..O.SS..O.......",
+      "...O....O.......",
+      "...O....O.......",
+      "..O......O......",
+      ".O........O....."
+    ],
+    [
+      "....OOO.........",
+      "...OSSSO........",
+      "...OSSSSO.......",
+      "...OSSDSSO......",
+      "....OSSSO.......",
+      "..OOSSSSSOO.....",
+      ".OSSSSSSSSSO....",
+      ".OSSSSDSSSSO....",
+      "..OSSSSSSSO.....",
+      "...OSSSSSO..FFFF",
+      "....OSSSO..FSSSF",
+      "....OSSSO..FSSSF",
+      "....OSSSO...FFF.",
+      "...OOSSSO........",
+      "..O.SSS.O.......",
+      "..O..SS.O.......",
+      "...O....O.......",
+      "...O....O.......",
+      "..O......O......",
+      ".O........O....."
+    ]
+  ];
+
+  function drawSprite(frame, x, y){
+    const rows = SPR[frame];
+    for(let j=0;j<rows.length;j++){
+      const row = rows[j];
+      for(let i=0;i<row.length;i++){
+        const ch = row[i];
+        if(ch === ".") continue;
+        let c = PAL.edge;
+        if(ch === "O") c = PAL.ink;
+        else if(ch === "S") c = PAL.edge;
+        else if(ch === "D") c = PAL.glow;
+        else if(ch === "F") c = PAL.glow;
+
+        ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+        ctx.fillRect((x+i)|0, (y+j)|0, 1, 1);
+      }
+    }
+  }
+
+  function drawSky(t){
+    // Simple sky gradient + rare embers
+    for(let y=0;y<H;y++){
+      const k = y / H;
+      const r = (PAL.sky0[0] + (PAL.sky1[0]-PAL.sky0[0]) * k) | 0;
+      const g = (PAL.sky0[1] + (PAL.sky1[1]-PAL.sky0[1]) * k) | 0;
+      const b = (PAL.sky0[2] + (PAL.sky1[2]-PAL.sky0[2]) * k) | 0;
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0,y,W,1);
+    }
+
+    // Embers (stable positions, slight twinkle)
+    const tw = 0.5 + 0.5*Math.sin(t*0.8);
+    ctx.fillStyle = `rgba(255,210,106,${0.25 + 0.20*tw})`;
+    for(let i=0;i<70;i++){
+      const x = (i*41) % W;
+      const y = (i*17) % 80;
+      if(((i*13)%9)===0) ctx.fillRect(x, y, 1, 1);
+    }
+  }
+
+  function drawMountain(t){
+    // Clip the mountain triangle, fill with pattern that scrolls down-slope
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(0, 160);
+    ctx.lineTo(150, 22);
+    ctx.lineTo(W, 160);
+    ctx.closePath();
+    ctx.clip();
+
+    ctx.fillStyle = rockPattern;
+
+    // Scroll pattern along down-slope direction (integer offsets => sharp)
+    const scroll = Math.floor(t * 12); // pixels/sec in pattern space
+    const ox = Math.floor(dnx * scroll);
+    const oy = Math.floor(dny * scroll);
+
+    ctx.save();
+    ctx.translate(ox, oy);
+    ctx.fillRect(-TW, -TH, W + TW*2, H + TH*2);
+    ctx.restore();
+
+    // Macro shading: darker near bottom
+    const g = ctx.createLinearGradient(0, 60, 0, 170);
+    g.addColorStop(0, "rgba(0,0,0,0.00)");
+    g.addColorStop(1, "rgba(0,0,0,0.32)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.restore();
+
+    // Slope edge pixels (crisp plane)
+    ctx.fillStyle = "rgba(255,239,154,0.85)";
+    for(let i=0;i<260;i++){
+      const tt = i/259;
+      const x = (A.x + dx*tt) | 0;
+      const y = (A.y + dy*tt) | 0;
+      if((i & 1) === 0) ctx.fillRect(x, y, 1, 1);
+    }
+  }
+
+  function drawSisyphus(t){
+    // Fixed position relative to boulder, animated frames
+    const fps = 6; // slow deliberate step
+    const f = Math.floor(t * fps) % 4;
+
+    // Subtle body shake + push pulse (integer offsets to keep sharp)
+    const pulse = Math.sin(t*0.9);
+    const shakeX = (pulse > 0 ? 1 : 0);
+    const shakeY = (Math.sin(t*6.0) > 0.6 ? 1 : 0);
+
+    const x = (boulder.x - 52 + shakeX) | 0;
+    const y = (boulder.y - 16 + shakeY) | 0;
+
+    drawSprite(f, x, y);
+  }
+
+  const start = performance.now();
+  function loop(now){
+    const t = (now - start) / 1000;
+
+    // Clear
+    drawSky(t);
+    drawMountain(t);
+
+    // Boulder stays fixed: tiny rotation only
+    drawBoulder(boulder.x, boulder.y, boulder.r, t*0.25);
+
+    // Sisyphus pushes forever (in-place, no progress)
+    drawSisyphus(t);
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
 </body>
 </html>
-
