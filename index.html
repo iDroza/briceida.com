@@ -6,20 +6,18 @@
   <title>Progress Update</title>
   <style>
     :root{
-      --bg0:#06050a;
-      --bg1:#0d0813;
+      --bg0:#05050a;
+      --bg1:#120a18;
       --gold:#ffef9a;
     }
-    html,body{height:100%; margin:0;}
+    html,body{height:100%;margin:0;}
     body{
       background: radial-gradient(1200px 700px at 50% 30%, var(--bg1), var(--bg0));
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      display:flex;align-items:center;justify-content:center;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       color: var(--gold);
     }
-    .wrap{ width:min(980px, 92vw); }
+    .wrap{width:min(980px,92vw);}
     h1{
       margin:0 0 10px 0;
       text-align:center;
@@ -28,7 +26,7 @@
       letter-spacing:.22em;
       font-size: clamp(18px, 2.4vw, 26px);
       color: var(--gold);
-      text-shadow: 0 0 14px rgba(255,239,154,.18);
+      text-shadow: 0 0 16px rgba(255,239,154,.18);
     }
     .frame{
       border: 1px solid rgba(255,239,154,.18);
@@ -43,8 +41,6 @@
       aspect-ratio: 16/9;
       display:block;
       border-radius: 14px;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
     }
   </style>
 </head>
@@ -60,250 +56,558 @@
 (() => {
   const canvas = document.getElementById("c");
   const ctx = canvas.getContext("2d", { alpha: false });
-  ctx.imageSmoothingEnabled = false;
 
-  // Pixel-art internal resolution (scaled up by CSS)
-  const W = 320;
-  const H = 180;
+  // High-res internal buffer for “non-pixelated” look
+  const W = 960, H = 540;
   canvas.width = W;
   canvas.height = H;
 
-  // Boulder stays fixed in screen space.
-  const boulder = { x: 204, y: 96, r: 12 };
+  // Keep smoothing on
+  ctx.imageSmoothingEnabled = true;
 
-  // Slope line (mountain boundary): two points
-  const A = { x: 52,  y: 150 };  // lower-left
-  const B = { x: 286, y: 56  };  // upper-right
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp = (a,b,t)=>a+(b-a)*t;
+  const easeInOut = (t)=>t<.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
 
-  const dx = B.x - A.x;
-  const dy = B.y - A.y;
-  const len = Math.hypot(dx, dy);
-  const tnx = dx / len;   // tangent (up-slope to the right)
-  const tny = dy / len;
+  // Light direction for shading
+  const light = normalize({x:-0.65, y:-0.42});
 
-  // Down-slope direction (treadmill pulls back)
-  const dnx = -tnx;
-  const dny = -tny;
-
-  // Slope equation: y = m(x - A.x) + A.y
-  const m = dy / dx;
-  const yAtX = (x) => m * (x - A.x) + A.y;
-
-  // Fast integer hash for texture (deterministic, no flicker)
-  function hash2(x, y){
-    let n = (x * 374761393) ^ (y * 668265263);
-    n = (n ^ (n >>> 13)) * 1274126177;
-    return (n ^ (n >>> 16)) >>> 0;
+  function normalize(v){
+    const l = Math.hypot(v.x,v.y) || 1;
+    return {x:v.x/l, y:v.y/l};
   }
 
-  function putPixel(data, i, r, g, b){
-    data[i] = r; data[i+1] = g; data[i+2] = b; data[i+3] = 255;
+  // Close-up composition: rock + man dominate frame.
+  const rock = { x: 670, y: 300, r: 120 };
+
+  // Slope plane (just enough context; not the focus)
+  const slope = {
+    // A big plane that runs diagonally, mostly behind them
+    y0: 365,        // baseline
+    tilt: -0.22,    // dy/dx
+    height: 340     // thickness of the plane
+  };
+  const slopeY = (x) => slope.y0 + slope.tilt*(x - W*0.55);
+
+  // Precompute a realistic boulder silhouette + surface detail
+  const rockShape = makeRockShape(rock.r, 180, 0.22);
+  const rockCracks = makeCracks(36, rock.r);
+
+  function rand01(seed){
+    // deterministic PRNG
+    let t = seed >>> 0;
+    t ^= t << 13; t ^= t >>> 17; t ^= t << 5;
+    return ((t >>> 0) % 1_000_000) / 1_000_000;
   }
 
-  function drawScene(timeSec){
-    const img = ctx.createImageData(W, H);
-    const data = img.data;
+  function makeRockShape(R, pts, roughness){
+    const arr = [];
+    for(let i=0;i<pts;i++){
+      const a = (i/pts) * Math.PI*2;
+      // smooth-ish noise: combine sines + deterministic jitter
+      const s1 = Math.sin(a*3.0) * 0.06;
+      const s2 = Math.sin(a*7.0 + 1.2) * 0.04;
+      const j  = (rand01(i*99991) - 0.5) * roughness * 0.08;
+      const rr = R * (1 + s1 + s2 + j);
+      arr.push({a, r: rr});
+    }
+    return arr;
+  }
 
-    // Treadmill scroll speed (pixels/sec along down-slope)
-    const scroll = timeSec * 10.0;
+  function makeCracks(n, R){
+    const cracks = [];
+    for(let i=0;i<n;i++){
+      const a = rand01(i*70111) * Math.PI*2;
+      const len = lerp(R*0.35, R*0.75, rand01(i*99173));
+      const bend = lerp(-0.9, 0.9, rand01(i*31337));
+      const w = lerp(0.8, 2.2, rand01(i*27183));
+      cracks.push({a,len,bend,w});
+    }
+    return cracks;
+  }
 
-    // Precompute ridge drift along down-slope
-    const ox = (dnx * scroll) | 0;
-    const oy = (dny * scroll) | 0;
+  // Terrain texture (subtle treadmill illusion)
+  const tex = document.createElement("canvas");
+  tex.width = 520; tex.height = 520;
+  const tctx = tex.getContext("2d");
+  buildTerrainTexture(tctx, tex.width, tex.height);
 
-    for(let y=0; y<H; y++){
-      // sky gradient-ish
-      const skyFade = y / H;
-      const skyR = (6 + skyFade * 10) | 0;
-      const skyG = (5 + skyFade * 8)  | 0;
-      const skyB = (10 + skyFade * 14) | 0;
+  function buildTerrainTexture(c, w, h){
+    c.clearRect(0,0,w,h);
+    const g = c.createRadialGradient(w*0.25,h*0.2, 40, w*0.5,h*0.55, w*0.75);
+    g.addColorStop(0, "rgba(255,210,106,0.22)");
+    g.addColorStop(1, "rgba(198,122,26,0.08)");
+    c.fillStyle = g;
+    c.fillRect(0,0,w,h);
 
-      for(let x=0; x<W; x++){
-        const idx = (y * W + x) * 4;
+    for(let i=0;i<4600;i++){
+      const x = (rand01(i*9901)*w)|0;
+      const y = (rand01(i*9967)*h)|0;
+      const s = rand01(i*10007);
+      const r = 1 + (s*2.2)|0;
+      const a = 0.05 + s*0.08;
+      c.fillStyle = `rgba(0,0,0,${a})`;
+      c.beginPath();
+      c.arc(x,y,r,0,Math.PI*2);
+      c.fill();
 
-        const boundary = yAtX(x);
-
-        if(y < boundary){
-          // SKY
-          // a few ember pixels
-          const h = hash2(x, y);
-          const ember = ((h & 1023) === 0); // rare
-          if(ember){
-            putPixel(data, idx, 255, 210, 106);
-          } else {
-            putPixel(data, idx, skyR, skyG, skyB);
-          }
-          continue;
-        }
-
-        // MOUNTAIN (yellow/orange palette)
-        // Depth into mountain from slope line
-        const depth = Math.min(1, Math.max(0, (y - boundary) / 60));
-
-        // Sample coords shifted along down-slope => treadmill illusion
-        const sx = x + ox;
-        const sy = y + oy;
-
-        const h = hash2(sx, sy);
-        const n8 = (h & 255); // 0..255
-
-        // Base color by depth
-        let r = (255 - depth*90) | 0;   // 255 -> ~165
-        let g = (140 - depth*70) | 0;   // 140 -> ~70
-        let b = (32  - depth*18) | 0;   // 32  -> ~14
-
-        // Add gritty ruggedness
-        if(n8 < 18){         // dark pits
-          r = (r * 0.55) | 0; g = (g * 0.50) | 0; b = (b * 0.60) | 0;
-        } else if(n8 > 238){ // bright grit
-          r = Math.min(255, r + 35);
-          g = Math.min(255, g + 45);
-          b = Math.min(255, b + 30);
-        }
-
-        // Ridge lines roughly parallel to slope (use normal coordinate)
-        // normal vector approx perpendicular to slope: ( -tny, tnx )
-        const nx = -tny, ny = tnx;
-        const normalCoord = ((x*nx + y*ny) * 3) | 0;
-        const ridge = Math.abs(((normalCoord + (scroll*3)|0) % 28)) === 0;
-        if(ridge){
-          r = Math.min(255, r + 22);
-          g = Math.min(255, g + 26);
-          b = Math.min(255, b + 10);
-        }
-
-        // Slight highlight near the slope edge (gives crisp plane)
-        if(y - boundary < 2){
-          r = Math.min(255, r + 30);
-          g = Math.min(255, g + 35);
-          b = Math.min(255, b + 12);
-        }
-
-        putPixel(data, idx, r, g, b);
+      if((i%7)===0){
+        c.fillStyle = `rgba(255,239,154,${0.03 + s*0.06})`;
+        c.fillRect(x,y,1,1);
       }
     }
 
-    ctx.putImageData(img, 0, 0);
-
-    // Draw the slope "edge" pixels for clarity
-    ctx.fillStyle = "rgba(255,239,154,0.75)";
-    for(let i=0;i<220;i++){
-      const t = i/219;
-      const x = (A.x + dx*t) | 0;
-      const y = (A.y + dy*t) | 0;
-      if(i%2===0) ctx.fillRect(x, y, 1, 1);
+    // a few brighter streaks to imply grain
+    c.strokeStyle = "rgba(255,239,154,0.05)";
+    c.lineWidth = 2;
+    for(let i=0;i<24;i++){
+      const y = (i/24)*h + rand01(i*811)*18;
+      c.beginPath();
+      c.moveTo(-40, y);
+      c.lineTo(w+40, y + rand01(i*997)*22);
+      c.stroke();
     }
   }
 
-  // Rugged boulder edge profile (stable)
-  const rough = Array.from({length:28}, (_,i)=>{
-    const r = Math.sin(i*2.0)*0.9 + Math.sin(i*0.65)*0.6;
-    return r;
-  });
+  function drawBackground(t){
+    // sky
+    const sky = ctx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0, "#06050a");
+    sky.addColorStop(0.6, "#0d0712");
+    sky.addColorStop(1, "rgba(255,138,31,0.10)");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0,0,W,H);
 
-  function drawBoulder(x,y,r,spin){
-    // Rugged pixel boulder; mostly yellow/orange, sharp edges
-    for(let py=-r-2; py<=r+2; py++){
-      for(let px=-r-2; px<=r+2; px++){
-        const d = Math.hypot(px,py);
-        const ang = Math.atan2(py,px) + spin;
-        const idx = (((ang + Math.PI) / (2*Math.PI)) * rough.length) | 0;
-        const edge = r + rough[(idx + rough.length) % rough.length];
-        if(d <= edge){
-          // Lighting: brighter top-left
-          const lit = (-(px) + -(py)) * 0.05;
-          const base = Math.max(0.15, Math.min(0.95, 0.55 + lit));
-          const bright = base > 0.58;
+    // faint embers
+    ctx.fillStyle = "rgba(255,210,106,0.12)";
+    for(let i=0;i<120;i++){
+      const x = (i*173 + 31) % W;
+      const y = (i*71 + 19) % 210;
+      if(((i*13) % 11) === 0) ctx.fillRect(x, y, 2, 2);
+    }
 
-          ctx.fillStyle = bright ? "rgba(255,210,106,0.92)" : "rgba(198,122,26,0.98)";
-          ctx.fillRect((x+px)|0, (y+py)|0, 1, 1);
-        }
+    // slope plane polygon
+    const yL = slopeY(0);
+    const yR = slopeY(W);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(0, yL);
+    ctx.lineTo(W, yR);
+    ctx.lineTo(W, yR + slope.height);
+    ctx.lineTo(0, yL + slope.height);
+    ctx.closePath();
+    ctx.clip();
+
+    // base fill
+    const base = ctx.createLinearGradient(0, yL, 0, yL + slope.height);
+    base.addColorStop(0, "rgba(255,138,31,0.20)");
+    base.addColorStop(1, "rgba(122,47,8,0.55)");
+    ctx.fillStyle = base;
+    ctx.fillRect(0, yL, W, slope.height);
+
+    // treadmill illusion: slide texture down-slope direction
+    const scroll = t * 70;
+    // create a transform so the texture is aligned roughly with slope
+    const angle = Math.atan2(slope.tilt, 1);
+    ctx.translate(W*0.52, yL + 120);
+    ctx.rotate(angle);
+
+    const pat = ctx.createPattern(tex, "repeat");
+    ctx.fillStyle = pat;
+    ctx.translate(-scroll, scroll*0.35);
+    ctx.fillRect(-W*2, -H*2, W*4, H*4);
+
+    ctx.restore();
+
+    // crisp edge line of the slope (subtle)
+    ctx.strokeStyle = "rgba(255,239,154,0.25)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, yL);
+    ctx.lineTo(W, yR);
+    ctx.stroke();
+  }
+
+  function drawRock(t){
+    const x = rock.x, y = rock.y, R = rock.r;
+
+    // shadow on slope under rock
+    ctx.save();
+    const sy = slopeY(x);
+    const shadowY = Math.max(sy + 30, y + R*0.65);
+    const sh = ctx.createRadialGradient(x-25, shadowY, 20, x, shadowY, R*1.25);
+    sh.addColorStop(0, "rgba(0,0,0,0.45)");
+    sh.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = sh;
+    ctx.beginPath();
+    ctx.ellipse(x-8, shadowY+8, R*1.05, R*0.45, -0.12, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // rock body clip
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.beginPath();
+    for(let i=0;i<rockShape.length;i++){
+      const p = rockShape[i];
+      const px = Math.cos(p.a)*p.r;
+      const py = Math.sin(p.a)*p.r;
+      if(i===0) ctx.moveTo(px,py);
+      else ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    ctx.clip();
+
+    // base shading: radial + directional light
+    const rg = ctx.createRadialGradient(-R*0.35, -R*0.35, R*0.2, 0, 0, R*1.15);
+    rg.addColorStop(0, "rgba(255,210,106,0.95)");
+    rg.addColorStop(0.55, "rgba(198,122,26,0.98)");
+    rg.addColorStop(1, "rgba(74,32,10,0.98)");
+    ctx.fillStyle = rg;
+    ctx.fillRect(-R*1.4, -R*1.4, R*2.8, R*2.8);
+
+    // granular speckle
+    for(let i=0;i<2800;i++){
+      const a = rand01(i*9001) * Math.PI*2;
+      const rr = Math.sqrt(rand01(i*9973)) * R*1.05;
+      const px = Math.cos(a)*rr;
+      const py = Math.sin(a)*rr;
+
+      const nl = clamp((px*light.x + py*light.y)/R, -1, 1);
+      const bright = 0.10 + 0.22*(nl+1)/2;
+
+      const s = rand01(i*70001);
+      const dot = 0.8 + s*1.4;
+
+      ctx.fillStyle = s > 0.83
+        ? `rgba(255,239,154,${bright})`
+        : `rgba(0,0,0,${0.05 + (1-bright)*0.12})`;
+
+      ctx.beginPath();
+      ctx.arc(px, py, dot, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // cracks
+    ctx.lineCap = "round";
+    for(let i=0;i<rockCracks.length;i++){
+      const c = rockCracks[i];
+      const a = c.a + Math.sin(t*0.12)*0.01; // essentially static
+      const x0 = Math.cos(a)*R*0.10;
+      const y0 = Math.sin(a)*R*0.10;
+      const x1 = Math.cos(a)*c.len;
+      const y1 = Math.sin(a)*c.len;
+
+      const mx = (x0+x1)/2 + Math.cos(a+Math.PI/2)*c.bend*R*0.10;
+      const my = (y0+y1)/2 + Math.sin(a+Math.PI/2)*c.bend*R*0.10;
+
+      const nl = clamp((mx*light.x + my*light.y)/R, -1, 1);
+      const alpha = 0.10 + 0.14*(1 - (nl+1)/2);
+
+      ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+      ctx.lineWidth = c.w;
+
+      ctx.beginPath();
+      ctx.moveTo(x0,y0);
+      ctx.quadraticCurveTo(mx,my,x1,y1);
+      ctx.stroke();
+
+      // faint highlight on crack edge
+      if(i%3===0){
+        ctx.strokeStyle = "rgba(255,239,154,0.08)";
+        ctx.lineWidth = Math.max(0.8, c.w*0.55);
+        ctx.beginPath();
+        ctx.moveTo(x0-1,y0-1);
+        ctx.quadraticCurveTo(mx-1,my-1,x1-1,y1-1);
+        ctx.stroke();
       }
     }
-    // Shadow under boulder
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    for(let i=0;i<r*2;i++){
-      ctx.fillRect((x-r+i)|0, (y+r+2)|0, 1, 1);
+
+    // rim darkening (vignette on rock)
+    const rim = ctx.createRadialGradient(0,0,R*0.4, 0,0,R*1.1);
+    rim.addColorStop(0, "rgba(0,0,0,0)");
+    rim.addColorStop(1, "rgba(0,0,0,0.22)");
+    ctx.fillStyle = rim;
+    ctx.fillRect(-R*1.4, -R*1.4, R*2.8, R*2.8);
+
+    ctx.restore();
+
+    // crisp outline
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for(let i=0;i<rockShape.length;i++){
+      const p = rockShape[i];
+      const px = Math.cos(p.a)*p.r;
+      const py = Math.sin(p.a)*p.r;
+      if(i===0) ctx.moveTo(px,py);
+      else ctx.lineTo(px,py);
     }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
   }
 
-  function drawSisyphus(timeSec){
-    // He stays “stuck” behind the boulder. Only limbs cycle.
-    const step = Math.sin(timeSec * 1.5);        // leg alternation
-    const strain = 0.5 + 0.5*Math.sin(timeSec*0.8); // slow effort pulse
-    const micro = (Math.sin(timeSec*6.0) * 0.6); // subtle shake (body only)
+  function drawSisyphus(t){
+    // human-ish proportions, close-up, leaning push
+    const step = Math.sin(t * 1.4);           // legs
+    const effort = 0.5 + 0.5*Math.sin(t*0.7); // slow strain
+    const tremor = Math.sin(t*10.5) * 0.6;    // subtle shake
 
-    // Anchor near boulder
-    const ax = (boulder.x - 28) | 0;
-    const ay = (boulder.y + 10) | 0;
+    const baseX = rock.x - rock.r - 165;
+    const baseY = rock.y + 95;
 
-    // Colors (warm silhouette)
-    const skin = "rgba(255,239,154,0.95)";
-    const fist = "rgba(255,210,106,0.98)";
-    const shade = "rgba(0,0,0,0.25)";
+    // contact point on rock surface
+    const contactX = rock.x - rock.r + 22;
+    const contactY = rock.y + 30;
 
-    // Lean into push (slight)
-    const leanX = (2 + strain*1) | 0;
-    const bobY  = (micro) | 0;
+    // body lean & micro movement
+    const lean = 0.38 + effort*0.08;
+    const bob  = tremor * 0.35 + Math.sin(t*2.8)*0.6;
 
-    const bx = ax + leanX;
-    const by = ay + bobY;
+    // palette (warm, human; still fits yellow/orange world)
+    const skin = "#f0caa0";
+    const skinShadow = "rgba(0,0,0,0.22)";
+    const cloth = "#3b2a22";
+    const cloth2 = "#2b1b15";
 
-    // Torso (thicker to feel muscular)
+    // ground contact approximate
+    const footY = baseY + bob;
+
+    // skeleton points (2D rig)
+    const hip = { x: baseX + 50, y: footY - 120 };
+    const shoulder = { x: hip.x + 55, y: hip.y - 105 };
+    const head = { x: shoulder.x + 18, y: shoulder.y - 58 };
+
+    // arms toward rock
+    const hand = { x: contactX, y: contactY + Math.sin(t*1.6)*2.5 };
+    const elbow = { x: lerp(shoulder.x+25, hand.x-55, 0.55), y: lerp(shoulder.y+20, hand.y+10, 0.55) - 10 + Math.sin(t*1.8)*2 };
+    const backHand = { x: hand.x - 14, y: hand.y + 12 };
+    const backElbow = { x: elbow.x - 18, y: elbow.y + 18 };
+
+    // legs stepping-in-place (but planted)
+    const stride = 22;
+    const kneeF = { x: hip.x + 10 + step*8, y: hip.y + 70 };
+    const ankleF= { x: hip.x - 18 + step*stride*0.55, y: footY };
+    const kneeB = { x: hip.x + 20 - step*10, y: hip.y + 80 };
+    const ankleB= { x: hip.x + 12 - step*stride*0.35, y: footY + 6 };
+
+    // torso curve
+    const torso = [
+      {x: hip.x, y: hip.y},
+      {x: hip.x + 25, y: hip.y - 70},
+      {x: shoulder.x, y: shoulder.y}
+    ];
+
+    // cast shadow
+    ctx.save();
+    const shY = Math.max(slopeY(hip.x) + 60, footY + 20);
+    const sh = ctx.createRadialGradient(hip.x+40, shY, 30, hip.x+55, shY, 170);
+    sh.addColorStop(0, "rgba(0,0,0,0.40)");
+    sh.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = sh;
+    ctx.beginPath();
+    ctx.ellipse(hip.x+48, shY, 150, 55, -0.10, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // draw back leg
+    drawLimb(hip, kneeB, ankleB, 18, cloth2, 0.12);
+    drawFoot(ankleB, 26, 11, -0.12, "#1a1010", 0.8);
+
+    // draw torso + clothing
+    ctx.save();
+    ctx.translate(0,0);
+    // torso fill
+    const tg = ctx.createLinearGradient(hip.x, hip.y-120, shoulder.x+20, shoulder.y+40);
+    tg.addColorStop(0, cloth);
+    tg.addColorStop(1, cloth2);
+    ctx.strokeStyle = tg;
+    ctx.lineWidth = 46;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(torso[0].x, torso[0].y);
+    ctx.quadraticCurveTo(torso[1].x, torso[1].y, torso[2].x, torso[2].y);
+    ctx.stroke();
+
+    // highlight along torso edge
+    ctx.strokeStyle = "rgba(255,239,154,0.10)";
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(torso[0].x+8, torso[0].y-6);
+    ctx.quadraticCurveTo(torso[1].x+10, torso[1].y-6, torso[2].x+6, torso[2].y-4);
+    ctx.stroke();
+    ctx.restore();
+
+    // neck
     ctx.fillStyle = skin;
-    ctx.fillRect(bx-2, by-12, 5, 9);     // torso/chest
-    ctx.fillRect(bx-1, by-16, 3, 4);     // neck
+    ctx.beginPath();
+    ctx.roundRect(shoulder.x+2, shoulder.y-18, 20, 24, 10);
+    ctx.fill();
 
-    // Head
-    ctx.fillRect(bx-2, by-20, 4, 4);
+    // head (more human: jaw + face plane)
+    ctx.save();
+    const faceG = ctx.createLinearGradient(head.x-20, head.y-15, head.x+25, head.y+35);
+    faceG.addColorStop(0, "#ffd8b5");
+    faceG.addColorStop(1, "#d9a97f");
+    ctx.fillStyle = faceG;
+    ctx.beginPath();
+    // cranium
+    ctx.arc(head.x, head.y, 26, Math.PI*0.20, Math.PI*1.90, false);
+    // jaw
+    ctx.quadraticCurveTo(head.x+30, head.y+10, head.x+18, head.y+30);
+    ctx.quadraticCurveTo(head.x, head.y+38, head.x-12, head.y+30);
+    ctx.closePath();
+    ctx.fill();
 
-    // Shoulders
-    ctx.fillRect(bx-3, by-13, 7, 2);
+    // hair
+    ctx.fillStyle = "rgba(34,20,16,0.95)";
+    ctx.beginPath();
+    ctx.arc(head.x-2, head.y-8, 25, Math.PI*1.05, Math.PI*0.15, true);
+    ctx.quadraticCurveTo(head.x+14, head.y-24, head.x+18, head.y-6);
+    ctx.closePath();
+    ctx.fill();
 
-    // Arms pushing (animate small piston motion)
-    const armPulse = (Math.round((strain - 0.5)*2)) | 0; // -1..1
-    const armLen = 7 + armPulse;
+    // face shadow
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
+    ctx.beginPath();
+    ctx.ellipse(head.x+10, head.y+14, 14, 18, 0.3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
 
-    // Front arm to boulder
-    ctx.fillRect(bx+2, by-12, armLen, 2);
-    // Back arm (shorter, under)
-    ctx.fillRect(bx-6, by-11, 6, 2);
+    // back arm
+    drawArm(shoulder, backElbow, backHand, 18, skinShadow, skin, 0.16);
 
-    // Big muscular fist on the boulder
-    ctx.fillStyle = fist;
-    ctx.fillRect(bx+2+armLen, by-13, 3, 3);
+    // front arm (muscular)
+    drawArm(shoulder, elbow, hand, 22, "rgba(0,0,0,0.18)", skin, 0.26);
 
-    // Legs: alternate forward/back (stepping-in-place)
-    ctx.fillStyle = skin;
-    const lF = step > 0 ? 1 : -1;
-    const lB = -lF;
+    // fist / hand against rock
+    ctx.save();
+    const hg = ctx.createLinearGradient(hand.x-16, hand.y-16, hand.x+18, hand.y+18);
+    hg.addColorStop(0, "#ffe1bf");
+    hg.addColorStop(1, "#c98f64");
+    ctx.fillStyle = hg;
+    ctx.beginPath();
+    ctx.roundRect(hand.x-16, hand.y-14, 32, 26, 10);
+    ctx.fill();
+    // knuckle ridges
+    ctx.strokeStyle = "rgba(0,0,0,0.14)";
+    ctx.lineWidth = 2;
+    for(let i=0;i<4;i++){
+      ctx.beginPath();
+      ctx.moveTo(hand.x-10 + i*6, hand.y-6);
+      ctx.lineTo(hand.x-10 + i*6, hand.y+2);
+      ctx.stroke();
+    }
+    ctx.restore();
 
-    // Left leg
-    ctx.fillRect(bx-2, by-3, 2, 7);
-    ctx.fillRect(bx-2 + lF, by+4, 2, 2);
+    // front leg
+    drawLimb(hip, kneeF, ankleF, 20, cloth, 0.18);
+    drawFoot(ankleF, 30, 12, -0.14, "#1a1010", 0.9);
 
-    // Right leg
-    ctx.fillRect(bx+1, by-3, 2, 7);
-    ctx.fillRect(bx+1 + lB, by+4, 2, 2);
+    // shoulder / upper back definition (muscle)
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
+    ctx.beginPath();
+    ctx.ellipse(shoulder.x+6, shoulder.y+12, 34, 22, -0.3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
 
-    // Outline/shadow hints (adds sharpness)
-    ctx.fillStyle = shade;
-    ctx.fillRect(bx-2, by-12, 1, 9);
-    ctx.fillRect(bx-2, by-3, 1, 7);
+  function drawLimb(p0, p1, p2, thickness, color, shadowAlpha){
+    // thigh + calf as thick strokes
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineCap = "round";
+
+    // shadow offset
+    ctx.strokeStyle = `rgba(0,0,0,${shadowAlpha})`;
+    ctx.lineWidth = thickness + 2;
+    ctx.beginPath();
+    ctx.moveTo(p0.x+2, p0.y+2);
+    ctx.quadraticCurveTo(p1.x+2, p1.y+2, p2.x+2, p2.y+2);
+    ctx.stroke();
+
+    // main
+    ctx.strokeStyle = color;
+    ctx.lineWidth = thickness;
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y);
+    ctx.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y);
+    ctx.stroke();
+
+    // highlight
+    ctx.strokeStyle = "rgba(255,239,154,0.08)";
+    ctx.lineWidth = Math.max(3, thickness*0.25);
+    ctx.beginPath();
+    ctx.moveTo(p0.x-1, p0.y-2);
+    ctx.quadraticCurveTo(p1.x-1, p1.y-2, p2.x-1, p2.y-2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawFoot(p, w, h, rot, color, alpha){
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(rot);
+    ctx.fillStyle = `rgba(0,0,0,0.25)`;
+    ctx.beginPath();
+    ctx.ellipse(8, 10, w*0.9, h*0.6, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = color;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.roundRect(-w*0.15, -h*0.7, w, h, 8);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function drawArm(shoulder, elbow, hand, thickness, shadowColor, skinColor, highlight){
+    ctx.save();
+    ctx.lineCap = "round";
+
+    // shadow
+    ctx.strokeStyle = shadowColor;
+    ctx.lineWidth = thickness + 3;
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x+2, shoulder.y+3);
+    ctx.quadraticCurveTo(elbow.x+2, elbow.y+3, hand.x+2, hand.y+3);
+    ctx.stroke();
+
+    // skin gradient along arm
+    const g = ctx.createLinearGradient(shoulder.x, shoulder.y, hand.x, hand.y);
+    g.addColorStop(0, "#ffd8b5");
+    g.addColorStop(1, "#d29a70");
+    ctx.strokeStyle = g;
+    ctx.lineWidth = thickness;
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x, shoulder.y);
+    ctx.quadraticCurveTo(elbow.x, elbow.y, hand.x, hand.y);
+    ctx.stroke();
+
+    // muscle highlight
+    ctx.strokeStyle = `rgba(255,239,154,${highlight})`;
+    ctx.lineWidth = Math.max(3, thickness*0.25);
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x-1, shoulder.y-2);
+    ctx.quadraticCurveTo(elbow.x-1, elbow.y-2, hand.x-1, hand.y-2);
+    ctx.stroke();
+
+    ctx.restore();
   }
 
   const start = performance.now();
-
   function loop(now){
-    const t = (now - start) / 1000;
+    const t = (now - start)/1000;
 
-    // Background treadmill first
-    drawScene(t);
-
-    // Boulder stays fixed (no progress), very slight rotation only
-    drawBoulder(boulder.x, boulder.y, boulder.r, t*0.35);
-
-    // Sisyphus pushing forever in place
+    drawBackground(t);
+    drawRock(t);
     drawSisyphus(t);
 
     requestAnimationFrame(loop);
