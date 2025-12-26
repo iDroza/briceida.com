@@ -1,620 +1,111 @@
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Progress Update</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>I love you Briceida.</title>
+  <meta name="description" content="A simple billboard of love." />
   <style>
-    :root{
-      --bg0:#05050a;
-      --bg1:#120a18;
-      --gold:#ffef9a;
+    :root {
+      --purple: #FC0FC0;
+      --white: #FFFFFF;
+      --bg: #000000;
+      --muted: #444444;
     }
-    html,body{height:100%;margin:0;}
-    body{
-      background: radial-gradient(1200px 700px at 50% 30%, var(--bg1), var(--bg0));
-      display:flex;align-items:center;justify-content:center;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      color: var(--gold);
+
+    html, body {
+      height: 100%;
+      margin: 0;
     }
-    .wrap{width:min(980px,92vw);}
-    h1{
-      margin:0 0 10px 0;
-      text-align:center;
-      font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.22em;
-      font-size: clamp(18px, 2.4vw, 26px);
-      color: var(--gold);
-      text-shadow: 0 0 16px rgba(255,239,154,.18);
+
+    body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+                   "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 700;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
     }
-    .frame{
-      border: 1px solid rgba(255,239,154,.18);
-      border-radius: 18px;
-      padding: 14px;
-      background: linear-gradient(180deg, rgba(255,239,154,.05), rgba(0,0,0,.18));
-      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+
+    .line {
+      font-size: clamp(28px, 6vw, 56px);
+      line-height: 1.1;
+      letter-spacing: 0.2px;
+      margin: 0;
     }
-    canvas{
-      width:100%;
-      height:auto;
-      aspect-ratio: 16/9;
-      display:block;
-      border-radius: 14px;
+
+    .purple {
+      color: var(--purple);
+    }
+
+    /* Blur + slide-in animation */
+    .blur-word {
+      display: inline-block;
+      filter: blur(10px);
+      opacity: 0;
+      transform: translateY(-50px);
+      animation-name: blurIn;
+      animation-duration: 0.7s;
+      animation-timing-function: ease-out;
+      animation-fill-mode: forwards;
+      will-change: transform, filter, opacity;
+    }
+
+    @keyframes blurIn {
+      0% {
+        filter: blur(10px);
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+      60% {
+        filter: blur(5px);
+        opacity: 0.5;
+        transform: translateY(5px);
+      }
+      100% {
+        filter: blur(0px);
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Subtle bottom link */
+    .footer-link {
+      position: fixed;
+      bottom: 16px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.3s ease, opacity 0.3s ease;
+      opacity: 0.6;
+      letter-spacing: 0.5px;
+    }
+    .footer-link:hover {
+      color: var(--white);
+      opacity: 1;
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Progress Update</h1>
-    <div class="frame">
-      <canvas id="c"></canvas>
-    </div>
-  </div>
-
-<script>
-(() => {
-  const canvas = document.getElementById("c");
-  const ctx = canvas.getContext("2d", { alpha: false });
-
-  // High-res internal buffer for “non-pixelated” look
-  const W = 960, H = 540;
-  canvas.width = W;
-  canvas.height = H;
-
-  // Keep smoothing on
-  ctx.imageSmoothingEnabled = true;
-
-  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-  const lerp = (a,b,t)=>a+(b-a)*t;
-  const easeInOut = (t)=>t<.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
-
-  // Light direction for shading
-  const light = normalize({x:-0.65, y:-0.42});
-
-  function normalize(v){
-    const l = Math.hypot(v.x,v.y) || 1;
-    return {x:v.x/l, y:v.y/l};
-  }
-
-  // Close-up composition: rock + man dominate frame.
-  const rock = { x: 670, y: 300, r: 120 };
-
-  // Slope plane (just enough context; not the focus)
-  const slope = {
-    // A big plane that runs diagonally, mostly behind them
-    y0: 365,        // baseline
-    tilt: -0.22,    // dy/dx
-    height: 340     // thickness of the plane
-  };
-  const slopeY = (x) => slope.y0 + slope.tilt*(x - W*0.55);
-
-  // Precompute a realistic boulder silhouette + surface detail
-  const rockShape = makeRockShape(rock.r, 180, 0.22);
-  const rockCracks = makeCracks(36, rock.r);
-
-  function rand01(seed){
-    // deterministic PRNG
-    let t = seed >>> 0;
-    t ^= t << 13; t ^= t >>> 17; t ^= t << 5;
-    return ((t >>> 0) % 1_000_000) / 1_000_000;
-  }
-
-  function makeRockShape(R, pts, roughness){
-    const arr = [];
-    for(let i=0;i<pts;i++){
-      const a = (i/pts) * Math.PI*2;
-      // smooth-ish noise: combine sines + deterministic jitter
-      const s1 = Math.sin(a*3.0) * 0.06;
-      const s2 = Math.sin(a*7.0 + 1.2) * 0.04;
-      const j  = (rand01(i*99991) - 0.5) * roughness * 0.08;
-      const rr = R * (1 + s1 + s2 + j);
-      arr.push({a, r: rr});
-    }
-    return arr;
-  }
-
-  function makeCracks(n, R){
-    const cracks = [];
-    for(let i=0;i<n;i++){
-      const a = rand01(i*70111) * Math.PI*2;
-      const len = lerp(R*0.35, R*0.75, rand01(i*99173));
-      const bend = lerp(-0.9, 0.9, rand01(i*31337));
-      const w = lerp(0.8, 2.2, rand01(i*27183));
-      cracks.push({a,len,bend,w});
-    }
-    return cracks;
-  }
-
-  // Terrain texture (subtle treadmill illusion)
-  const tex = document.createElement("canvas");
-  tex.width = 520; tex.height = 520;
-  const tctx = tex.getContext("2d");
-  buildTerrainTexture(tctx, tex.width, tex.height);
-
-  function buildTerrainTexture(c, w, h){
-    c.clearRect(0,0,w,h);
-    const g = c.createRadialGradient(w*0.25,h*0.2, 40, w*0.5,h*0.55, w*0.75);
-    g.addColorStop(0, "rgba(255,210,106,0.22)");
-    g.addColorStop(1, "rgba(198,122,26,0.08)");
-    c.fillStyle = g;
-    c.fillRect(0,0,w,h);
-
-    for(let i=0;i<4600;i++){
-      const x = (rand01(i*9901)*w)|0;
-      const y = (rand01(i*9967)*h)|0;
-      const s = rand01(i*10007);
-      const r = 1 + (s*2.2)|0;
-      const a = 0.05 + s*0.08;
-      c.fillStyle = `rgba(0,0,0,${a})`;
-      c.beginPath();
-      c.arc(x,y,r,0,Math.PI*2);
-      c.fill();
-
-      if((i%7)===0){
-        c.fillStyle = `rgba(255,239,154,${0.03 + s*0.06})`;
-        c.fillRect(x,y,1,1);
-      }
-    }
-
-    // a few brighter streaks to imply grain
-    c.strokeStyle = "rgba(255,239,154,0.05)";
-    c.lineWidth = 2;
-    for(let i=0;i<24;i++){
-      const y = (i/24)*h + rand01(i*811)*18;
-      c.beginPath();
-      c.moveTo(-40, y);
-      c.lineTo(w+40, y + rand01(i*997)*22);
-      c.stroke();
-    }
-  }
-
-  function drawBackground(t){
-    // sky
-    const sky = ctx.createLinearGradient(0,0,0,H);
-    sky.addColorStop(0, "#06050a");
-    sky.addColorStop(0.6, "#0d0712");
-    sky.addColorStop(1, "rgba(255,138,31,0.10)");
-    ctx.fillStyle = sky;
-    ctx.fillRect(0,0,W,H);
-
-    // faint embers
-    ctx.fillStyle = "rgba(255,210,106,0.12)";
-    for(let i=0;i<120;i++){
-      const x = (i*173 + 31) % W;
-      const y = (i*71 + 19) % 210;
-      if(((i*13) % 11) === 0) ctx.fillRect(x, y, 2, 2);
-    }
-
-    // slope plane polygon
-    const yL = slopeY(0);
-    const yR = slopeY(W);
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(0, yL);
-    ctx.lineTo(W, yR);
-    ctx.lineTo(W, yR + slope.height);
-    ctx.lineTo(0, yL + slope.height);
-    ctx.closePath();
-    ctx.clip();
-
-    // base fill
-    const base = ctx.createLinearGradient(0, yL, 0, yL + slope.height);
-    base.addColorStop(0, "rgba(255,138,31,0.20)");
-    base.addColorStop(1, "rgba(122,47,8,0.55)");
-    ctx.fillStyle = base;
-    ctx.fillRect(0, yL, W, slope.height);
-
-    // treadmill illusion: slide texture down-slope direction
-    const scroll = t * 70;
-    // create a transform so the texture is aligned roughly with slope
-    const angle = Math.atan2(slope.tilt, 1);
-    ctx.translate(W*0.52, yL + 120);
-    ctx.rotate(angle);
-
-    const pat = ctx.createPattern(tex, "repeat");
-    ctx.fillStyle = pat;
-    ctx.translate(-scroll, scroll*0.35);
-    ctx.fillRect(-W*2, -H*2, W*4, H*4);
-
-    ctx.restore();
-
-    // crisp edge line of the slope (subtle)
-    ctx.strokeStyle = "rgba(255,239,154,0.25)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, yL);
-    ctx.lineTo(W, yR);
-    ctx.stroke();
-  }
-
-  function drawRock(t){
-    const x = rock.x, y = rock.y, R = rock.r;
-
-    // shadow on slope under rock
-    ctx.save();
-    const sy = slopeY(x);
-    const shadowY = Math.max(sy + 30, y + R*0.65);
-    const sh = ctx.createRadialGradient(x-25, shadowY, 20, x, shadowY, R*1.25);
-    sh.addColorStop(0, "rgba(0,0,0,0.45)");
-    sh.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = sh;
-    ctx.beginPath();
-    ctx.ellipse(x-8, shadowY+8, R*1.05, R*0.45, -0.12, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-
-    // rock body clip
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.beginPath();
-    for(let i=0;i<rockShape.length;i++){
-      const p = rockShape[i];
-      const px = Math.cos(p.a)*p.r;
-      const py = Math.sin(p.a)*p.r;
-      if(i===0) ctx.moveTo(px,py);
-      else ctx.lineTo(px,py);
-    }
-    ctx.closePath();
-    ctx.clip();
-
-    // base shading: radial + directional light
-    const rg = ctx.createRadialGradient(-R*0.35, -R*0.35, R*0.2, 0, 0, R*1.15);
-    rg.addColorStop(0, "rgba(255,210,106,0.95)");
-    rg.addColorStop(0.55, "rgba(198,122,26,0.98)");
-    rg.addColorStop(1, "rgba(74,32,10,0.98)");
-    ctx.fillStyle = rg;
-    ctx.fillRect(-R*1.4, -R*1.4, R*2.8, R*2.8);
-
-    // granular speckle
-    for(let i=0;i<2800;i++){
-      const a = rand01(i*9001) * Math.PI*2;
-      const rr = Math.sqrt(rand01(i*9973)) * R*1.05;
-      const px = Math.cos(a)*rr;
-      const py = Math.sin(a)*rr;
-
-      const nl = clamp((px*light.x + py*light.y)/R, -1, 1);
-      const bright = 0.10 + 0.22*(nl+1)/2;
-
-      const s = rand01(i*70001);
-      const dot = 0.8 + s*1.4;
-
-      ctx.fillStyle = s > 0.83
-        ? `rgba(255,239,154,${bright})`
-        : `rgba(0,0,0,${0.05 + (1-bright)*0.12})`;
-
-      ctx.beginPath();
-      ctx.arc(px, py, dot, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    // cracks
-    ctx.lineCap = "round";
-    for(let i=0;i<rockCracks.length;i++){
-      const c = rockCracks[i];
-      const a = c.a + Math.sin(t*0.12)*0.01; // essentially static
-      const x0 = Math.cos(a)*R*0.10;
-      const y0 = Math.sin(a)*R*0.10;
-      const x1 = Math.cos(a)*c.len;
-      const y1 = Math.sin(a)*c.len;
-
-      const mx = (x0+x1)/2 + Math.cos(a+Math.PI/2)*c.bend*R*0.10;
-      const my = (y0+y1)/2 + Math.sin(a+Math.PI/2)*c.bend*R*0.10;
-
-      const nl = clamp((mx*light.x + my*light.y)/R, -1, 1);
-      const alpha = 0.10 + 0.14*(1 - (nl+1)/2);
-
-      ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
-      ctx.lineWidth = c.w;
-
-      ctx.beginPath();
-      ctx.moveTo(x0,y0);
-      ctx.quadraticCurveTo(mx,my,x1,y1);
-      ctx.stroke();
-
-      // faint highlight on crack edge
-      if(i%3===0){
-        ctx.strokeStyle = "rgba(255,239,154,0.08)";
-        ctx.lineWidth = Math.max(0.8, c.w*0.55);
-        ctx.beginPath();
-        ctx.moveTo(x0-1,y0-1);
-        ctx.quadraticCurveTo(mx-1,my-1,x1-1,y1-1);
-        ctx.stroke();
-      }
-    }
-
-    // rim darkening (vignette on rock)
-    const rim = ctx.createRadialGradient(0,0,R*0.4, 0,0,R*1.1);
-    rim.addColorStop(0, "rgba(0,0,0,0)");
-    rim.addColorStop(1, "rgba(0,0,0,0.22)");
-    ctx.fillStyle = rim;
-    ctx.fillRect(-R*1.4, -R*1.4, R*2.8, R*2.8);
-
-    ctx.restore();
-
-    // crisp outline
-    ctx.save();
-    ctx.translate(x,y);
-    ctx.strokeStyle = "rgba(0,0,0,0.25)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    for(let i=0;i<rockShape.length;i++){
-      const p = rockShape[i];
-      const px = Math.cos(p.a)*p.r;
-      const py = Math.sin(p.a)*p.r;
-      if(i===0) ctx.moveTo(px,py);
-      else ctx.lineTo(px,py);
-    }
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawSisyphus(t){
-    // human-ish proportions, close-up, leaning push
-    const step = Math.sin(t * 1.4);           // legs
-    const effort = 0.5 + 0.5*Math.sin(t*0.7); // slow strain
-    const tremor = Math.sin(t*10.5) * 0.6;    // subtle shake
-
-    const baseX = rock.x - rock.r - 165;
-    const baseY = rock.y + 95;
-
-    // contact point on rock surface
-    const contactX = rock.x - rock.r + 22;
-    const contactY = rock.y + 30;
-
-    // body lean & micro movement
-    const lean = 0.38 + effort*0.08;
-    const bob  = tremor * 0.35 + Math.sin(t*2.8)*0.6;
-
-    // palette (warm, human; still fits yellow/orange world)
-    const skin = "#f0caa0";
-    const skinShadow = "rgba(0,0,0,0.22)";
-    const cloth = "#3b2a22";
-    const cloth2 = "#2b1b15";
-
-    // ground contact approximate
-    const footY = baseY + bob;
-
-    // skeleton points (2D rig)
-    const hip = { x: baseX + 50, y: footY - 120 };
-    const shoulder = { x: hip.x + 55, y: hip.y - 105 };
-    const head = { x: shoulder.x + 18, y: shoulder.y - 58 };
-
-    // arms toward rock
-    const hand = { x: contactX, y: contactY + Math.sin(t*1.6)*2.5 };
-    const elbow = { x: lerp(shoulder.x+25, hand.x-55, 0.55), y: lerp(shoulder.y+20, hand.y+10, 0.55) - 10 + Math.sin(t*1.8)*2 };
-    const backHand = { x: hand.x - 14, y: hand.y + 12 };
-    const backElbow = { x: elbow.x - 18, y: elbow.y + 18 };
-
-    // legs stepping-in-place (but planted)
-    const stride = 22;
-    const kneeF = { x: hip.x + 10 + step*8, y: hip.y + 70 };
-    const ankleF= { x: hip.x - 18 + step*stride*0.55, y: footY };
-    const kneeB = { x: hip.x + 20 - step*10, y: hip.y + 80 };
-    const ankleB= { x: hip.x + 12 - step*stride*0.35, y: footY + 6 };
-
-    // torso curve
-    const torso = [
-      {x: hip.x, y: hip.y},
-      {x: hip.x + 25, y: hip.y - 70},
-      {x: shoulder.x, y: shoulder.y}
-    ];
-
-    // cast shadow
-    ctx.save();
-    const shY = Math.max(slopeY(hip.x) + 60, footY + 20);
-    const sh = ctx.createRadialGradient(hip.x+40, shY, 30, hip.x+55, shY, 170);
-    sh.addColorStop(0, "rgba(0,0,0,0.40)");
-    sh.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = sh;
-    ctx.beginPath();
-    ctx.ellipse(hip.x+48, shY, 150, 55, -0.10, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-
-    // draw back leg
-    drawLimb(hip, kneeB, ankleB, 18, cloth2, 0.12);
-    drawFoot(ankleB, 26, 11, -0.12, "#1a1010", 0.8);
-
-    // draw torso + clothing
-    ctx.save();
-    ctx.translate(0,0);
-    // torso fill
-    const tg = ctx.createLinearGradient(hip.x, hip.y-120, shoulder.x+20, shoulder.y+40);
-    tg.addColorStop(0, cloth);
-    tg.addColorStop(1, cloth2);
-    ctx.strokeStyle = tg;
-    ctx.lineWidth = 46;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(torso[0].x, torso[0].y);
-    ctx.quadraticCurveTo(torso[1].x, torso[1].y, torso[2].x, torso[2].y);
-    ctx.stroke();
-
-    // highlight along torso edge
-    ctx.strokeStyle = "rgba(255,239,154,0.10)";
-    ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.moveTo(torso[0].x+8, torso[0].y-6);
-    ctx.quadraticCurveTo(torso[1].x+10, torso[1].y-6, torso[2].x+6, torso[2].y-4);
-    ctx.stroke();
-    ctx.restore();
-
-    // neck
-    ctx.fillStyle = skin;
-    ctx.beginPath();
-    ctx.roundRect(shoulder.x+2, shoulder.y-18, 20, 24, 10);
-    ctx.fill();
-
-    // head (more human: jaw + face plane)
-    ctx.save();
-    const faceG = ctx.createLinearGradient(head.x-20, head.y-15, head.x+25, head.y+35);
-    faceG.addColorStop(0, "#ffd8b5");
-    faceG.addColorStop(1, "#d9a97f");
-    ctx.fillStyle = faceG;
-    ctx.beginPath();
-    // cranium
-    ctx.arc(head.x, head.y, 26, Math.PI*0.20, Math.PI*1.90, false);
-    // jaw
-    ctx.quadraticCurveTo(head.x+30, head.y+10, head.x+18, head.y+30);
-    ctx.quadraticCurveTo(head.x, head.y+38, head.x-12, head.y+30);
-    ctx.closePath();
-    ctx.fill();
-
-    // hair
-    ctx.fillStyle = "rgba(34,20,16,0.95)";
-    ctx.beginPath();
-    ctx.arc(head.x-2, head.y-8, 25, Math.PI*1.05, Math.PI*0.15, true);
-    ctx.quadraticCurveTo(head.x+14, head.y-24, head.x+18, head.y-6);
-    ctx.closePath();
-    ctx.fill();
-
-    // face shadow
-    ctx.fillStyle = "rgba(0,0,0,0.10)";
-    ctx.beginPath();
-    ctx.ellipse(head.x+10, head.y+14, 14, 18, 0.3, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-
-    // back arm
-    drawArm(shoulder, backElbow, backHand, 18, skinShadow, skin, 0.16);
-
-    // front arm (muscular)
-    drawArm(shoulder, elbow, hand, 22, "rgba(0,0,0,0.18)", skin, 0.26);
-
-    // fist / hand against rock
-    ctx.save();
-    const hg = ctx.createLinearGradient(hand.x-16, hand.y-16, hand.x+18, hand.y+18);
-    hg.addColorStop(0, "#ffe1bf");
-    hg.addColorStop(1, "#c98f64");
-    ctx.fillStyle = hg;
-    ctx.beginPath();
-    ctx.roundRect(hand.x-16, hand.y-14, 32, 26, 10);
-    ctx.fill();
-    // knuckle ridges
-    ctx.strokeStyle = "rgba(0,0,0,0.14)";
-    ctx.lineWidth = 2;
-    for(let i=0;i<4;i++){
-      ctx.beginPath();
-      ctx.moveTo(hand.x-10 + i*6, hand.y-6);
-      ctx.lineTo(hand.x-10 + i*6, hand.y+2);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // front leg
-    drawLimb(hip, kneeF, ankleF, 20, cloth, 0.18);
-    drawFoot(ankleF, 30, 12, -0.14, "#1a1010", 0.9);
-
-    // shoulder / upper back definition (muscle)
-    ctx.save();
-    ctx.fillStyle = "rgba(0,0,0,0.10)";
-    ctx.beginPath();
-    ctx.ellipse(shoulder.x+6, shoulder.y+12, 34, 22, -0.3, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawLimb(p0, p1, p2, thickness, color, shadowAlpha){
-    // thigh + calf as thick strokes
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineCap = "round";
-
-    // shadow offset
-    ctx.strokeStyle = `rgba(0,0,0,${shadowAlpha})`;
-    ctx.lineWidth = thickness + 2;
-    ctx.beginPath();
-    ctx.moveTo(p0.x+2, p0.y+2);
-    ctx.quadraticCurveTo(p1.x+2, p1.y+2, p2.x+2, p2.y+2);
-    ctx.stroke();
-
-    // main
-    ctx.strokeStyle = color;
-    ctx.lineWidth = thickness;
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y);
-    ctx.stroke();
-
-    // highlight
-    ctx.strokeStyle = "rgba(255,239,154,0.08)";
-    ctx.lineWidth = Math.max(3, thickness*0.25);
-    ctx.beginPath();
-    ctx.moveTo(p0.x-1, p0.y-2);
-    ctx.quadraticCurveTo(p1.x-1, p1.y-2, p2.x-1, p2.y-2);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  function drawFoot(p, w, h, rot, color, alpha){
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(rot);
-    ctx.fillStyle = `rgba(0,0,0,0.25)`;
-    ctx.beginPath();
-    ctx.ellipse(8, 10, w*0.9, h*0.6, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.fillStyle = color;
-    ctx.globalAlpha = alpha;
-    ctx.beginPath();
-    ctx.roundRect(-w*0.15, -h*0.7, w, h, 8);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.restore();
-  }
-
-  function drawArm(shoulder, elbow, hand, thickness, shadowColor, skinColor, highlight){
-    ctx.save();
-    ctx.lineCap = "round";
-
-    // shadow
-    ctx.strokeStyle = shadowColor;
-    ctx.lineWidth = thickness + 3;
-    ctx.beginPath();
-    ctx.moveTo(shoulder.x+2, shoulder.y+3);
-    ctx.quadraticCurveTo(elbow.x+2, elbow.y+3, hand.x+2, hand.y+3);
-    ctx.stroke();
-
-    // skin gradient along arm
-    const g = ctx.createLinearGradient(shoulder.x, shoulder.y, hand.x, hand.y);
-    g.addColorStop(0, "#ffd8b5");
-    g.addColorStop(1, "#d29a70");
-    ctx.strokeStyle = g;
-    ctx.lineWidth = thickness;
-    ctx.beginPath();
-    ctx.moveTo(shoulder.x, shoulder.y);
-    ctx.quadraticCurveTo(elbow.x, elbow.y, hand.x, hand.y);
-    ctx.stroke();
-
-    // muscle highlight
-    ctx.strokeStyle = `rgba(255,239,154,${highlight})`;
-    ctx.lineWidth = Math.max(3, thickness*0.25);
-    ctx.beginPath();
-    ctx.moveTo(shoulder.x-1, shoulder.y-2);
-    ctx.quadraticCurveTo(elbow.x-1, elbow.y-2, hand.x-1, hand.y-2);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  const start = performance.now();
-  function loop(now){
-    const t = (now - start)/1000;
-
-    drawBackground(t);
-    drawRock(t);
-    drawSisyphus(t);
-
-    requestAnimationFrame(loop);
-  }
-
-  requestAnimationFrame(loop);
-})();
-</script>
+  <main>
+    <h1 class="line">
+      <span class="blur-word" style="animation-delay: 0s;">I</span>&nbsp;
+      <span class="blur-word" style="animation-delay: 0.12s;">love</span>&nbsp;
+      <span class="blur-word" style="animation-delay: 0.24s;">you</span>&nbsp;
+      <span class="blur-word purple" style="animation-delay: 0.36s;">Briceida</span><span class="blur-word" style="animation-delay: 0.48s;">.</span>
+    </h1>
+  </main>
+
+  <a href="https://drozq.com" class="footer-link" target="_blank" rel="noopener noreferrer">
+    drozq.com
+  </a>
 </body>
 </html>
+
